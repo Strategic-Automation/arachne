@@ -336,7 +336,7 @@ class TestWeaveWithConstraints:
         mock_topo = _make_minimal_topology(name="constrained_task")
 
         with patch.object(a.weaver, "forward") as mock_weave:
-            mock_weave.return_value = dspy.Prediction(topology=mock_topo)
+            mock_weave.return_value = dspy.Prediction(topology=mock_topo, is_complete=True)
             result = a.weave("Write a Python script to sort numbers", goal_definition=gd)
 
         assert isinstance(result, GraphTopology)

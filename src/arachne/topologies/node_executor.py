@@ -224,7 +224,7 @@ class NodeExecutor:
         if not self.module:
             self.module = self._build_module()
 
-        if self.module is None and getattr(self.node, "question", None):
+        if self.module is None and self.node.question:
             return dspy.Prediction(answer="")
 
         # 6. Execution Loop

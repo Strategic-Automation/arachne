@@ -73,7 +73,7 @@ class RichTerminalOutput:
 
         from arachne.topologies.schema import QuestionType
 
-        q_obj = getattr(node_def, "question", None)
+        q_obj = node_def.question
         if not q_obj:
             return questionary.text("  Please provide input:").ask()
 
@@ -84,10 +84,10 @@ class RichTerminalOutput:
             choices = q_obj.get("choices", [])
             default = q_obj.get("default", "")
         else:
-            prompt_text = getattr(q_obj, "query", str(q_obj))
-            q_type = getattr(q_obj, "type", QuestionType.TEXT)
-            choices = getattr(q_obj, "choices", [])
-            default = getattr(q_obj, "default", "")
+            prompt_text = q_obj.query
+            q_type = q_obj.type
+            choices = q_obj.choices
+            default = q_obj.default
 
         # Safe placeholder substitution (no str.format parsing)
         def _substitute(text: str, values: dict[str, Any]) -> str:
@@ -124,7 +124,7 @@ class HeadlessOutput:
         logger.debug("[arachne] Topology: %s (%d nodes)", topology.name, len(topology.nodes))
 
     def display_outputs(self, run_result: Any, topology: GraphTopology) -> None:
-        logger.debug("[arachne] Run complete: success=%s", getattr(run_result, "success", "?"))
+        logger.debug("[arachne] Run complete: success=%s", run_result.success)
 
     def ask_user(self, node_def: NodeDef, inputs: dict[str, Any]) -> str:
         raise RuntimeError(

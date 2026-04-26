@@ -162,16 +162,11 @@ The framework automatically merges these on startup, with environment variables 
 
 ## 🛤️ Roadmap
 
-- **v0.3.0** — Wave-level checkpointing, session resume
-- **v0.4.0** — Semantic topology search (vector-based reuse)
-- **v0.5.0** — Event bus & live streaming
+- **v0.2.0** — Wave-level checkpointing, session resume
+- **v0.3.0** — Semantic topology search (vector-based reuse)
+- **v0.4.0** — Event bus & live streaming
 
-See [ROADMAP.md](ROADMAP.md) for full vision and milestones, and for detailed implementation tracking.
-
----
-
-> [!IMPORTANT]
-> **Stable** — Arachne v0.1.0 is the official production release.
+See [ROADMAP.md](ROADMAP.md) for full vision and milestones.
 
 ---
 

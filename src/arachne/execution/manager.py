@@ -354,7 +354,7 @@ class ExecutionManager:
         if report.diagnosis:
             logger.debug("Low quality reason: %s", report.diagnosis)
 
-        details = getattr(report, "evaluation_details", None) or {}
+        details = report.evaluation_details if hasattr(report, "evaluation_details") else {}
         issues = details.get("issues", [])
         imps = details.get("improvements", [])
         trace = details.get("trace", "No trace available.")
@@ -556,7 +556,7 @@ class ExecutionManager:
 
         from arachne.topologies.schema import QuestionType
 
-        q_obj = getattr(node_def, "question", None)
+        q_obj = node_def.question
         if not q_obj:
             return questionary.text("  Please provide input:").ask()
 
@@ -567,10 +567,10 @@ class ExecutionManager:
             choices = q_obj.get("choices", [])
             default = q_obj.get("default", "")
         else:
-            prompt_text = getattr(q_obj, "query", str(q_obj))
-            q_type = getattr(q_obj, "type", QuestionType.TEXT)
-            choices = getattr(q_obj, "choices", [])
-            default = getattr(q_obj, "default", "")
+            prompt_text = q_obj.query
+            q_type = q_obj.type
+            choices = q_obj.choices
+            default = q_obj.default
 
         # Dynamic Templating: Support {input_name} placeholders in prompt and choices
         # Use safe literal replacement instead of str.format() to handle values with curly braces

@@ -136,7 +136,7 @@ class AutoHealer(dspy.Module):
 
         results_str = json.dumps(partial_results, indent=2, default=str)
         lm = dspy.settings.lm
-        model_name = getattr(lm, "model", "gpt-4o")
+        model_name = lm.model
         if count_tokens(results_str, model=model_name) > 4000:
             results_str = results_str[:2000] + "\n... [TRUNCATED] ...\n" + results_str[-2000:]
 

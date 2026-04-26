@@ -111,7 +111,7 @@ def compile_weaver(
     from arachne.optimizers.weaver_demos import get_training_examples
 
     def weaver_metric(example: dspy.Example, pred: dspy.Prediction, trace=None) -> bool:
-        topology = getattr(pred, "topology", None)
+        topology = pred.topology
         if topology is None:
             return False
         try:
@@ -136,7 +136,7 @@ def compile_weaver(
     from arachne.optimizers.weaver_demos import get_category_examples
 
     def selector_metric(example: dspy.Example, pred: dspy.Prediction, trace=None) -> bool:
-        selected = getattr(pred, "selected_categories", [])
+        selected = pred.selected_categories
         expected = example.selected_categories
         if not selected or not expected:
             return False
@@ -158,7 +158,7 @@ def compile_weaver(
     from arachne.optimizers.weaver_demos import get_clarifier_examples
 
     def clarifier_metric(example: dspy.Example, pred: dspy.Prediction, trace=None) -> bool:
-        is_complete = getattr(pred, "is_complete", None)
+        is_complete = pred.is_complete
         expected_complete = example.is_complete
         if is_complete is None:
             return False

@@ -133,7 +133,7 @@ class WaveExecutor:
             ts = time.monotonic()
 
             try:
-                is_hitl = getattr(node_def, "question", None) or node_def.role.value == "human_in_loop"
+                is_hitl = node_def.question or node_def.role.value == "human_in_loop"
                 if is_hitl:
                     result = await self._handle_human_input(
                         node_exec, node_def, inputs, knowledge_store, console_lock, ask_user_fn, all_results

@@ -188,7 +188,7 @@ class GraphWeaver(dspy.Module):
         categories = sorted({s.split("/")[0] for s in self._skill_catalog if "/" in s})
         with dspy.settings.context(temperature=0.0):
             result = self.selector(goal=goal, available_categories=", ".join(categories))
-        return getattr(result, "selected_categories", [])
+        return result.selected_categories
 
     def _build_skill_catalog(self, target_cats: list[str]) -> str:
         """Build skill catalog text from selected categories."""
@@ -249,7 +249,7 @@ class GraphWeaver(dspy.Module):
                 failure_context=failure_context,
             )
 
-        topology = getattr(pred, "topology", None)
+        topology = pred.topology
         if topology is None:
             raise ValueError("LLM returned None for topology.")
 

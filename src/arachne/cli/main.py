@@ -324,7 +324,7 @@ def run(
     try:
         result = arachne(goal=goal, topology=pre_woven_topology, fresh=fresh)
         run_result = result.run_result
-        topology = getattr(result, "topology", None)
+        topology = result.topology
 
         if json_output:
             print(_json.dumps(run_result.model_dump(mode="json"), indent=2))

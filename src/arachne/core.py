@@ -97,7 +97,7 @@ class Arachne(dspy.Module):
             check_intake=self.interactive and not failure_context,
         )
 
-        if not getattr(pred, "is_complete", True) and self.interactive:
+        if not pred.is_complete and self.interactive:
             self._output.status(f"Goal Analysis: {pred.reasoning}", level="warning")
             self._output.status("Your goal seems underspecified. Could you clarify a few things?")
 
@@ -119,7 +119,7 @@ class Arachne(dspy.Module):
         topology = pred.topology
         if topology is None:
             # Fallback if weaver failed to produce topology and we didn't handle questions
-            raise ValueError(f"Weaver failed to produce a topology. Reason: {getattr(pred, 'reasoning', 'Unknown')}")
+            raise ValueError(f"Weaver failed to produce a topology. Reason: {pred.reasoning}")
 
         # Always cache the topology for future use (even without an active session)
         self._save_cached_topology(goal, topology)
