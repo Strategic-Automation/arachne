@@ -127,14 +127,6 @@ class Arachne(dspy.Module):
             self._session.save_graph(topology.model_dump(mode="json"))
         return topology
 
-    def load_topology(self, path: str | Path) -> GraphTopology:
-        """Load a topology from a JSON file (skip weaving entirely)."""
-        data = json.loads(Path(path).read_text())
-        topology = GraphTopology.model_validate(data)
-        if self._session:
-            self._session.save_graph(data)
-        return topology
-
     def forward(
         self,
         goal: str,

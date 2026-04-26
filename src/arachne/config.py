@@ -284,16 +284,6 @@ class Settings(BaseSettings):
 
         return settings
 
-    def to_yaml(self, path: str | Path) -> None:
-        p = Path(path)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        data = self.model_dump(mode="json")
-        data["llm_api_key"] = "[REDACTED]"
-        if "langfuse" in data and isinstance(data["langfuse"], dict):
-            data["langfuse"]["secret_key"] = "[REDACTED]"
-        with p.open("w") as f:
-            yaml.dump(data, f, default_flow_style=False, sort_keys=False)
-
 
 def get_context_limit(model_name: str, settings: Settings) -> tuple[int, str]:
     """Auto-detect context limit from model name or litellm mapping."""

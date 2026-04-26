@@ -31,7 +31,3 @@ class KnowledgeStore(BaseModel):
             if entry.key == key:
                 return entry.value
         return None
-
-    def get_all_keys(self) -> list[str]:
-        """Get a list of all known keys."""
-        return list({e.key for e in self.facts})
