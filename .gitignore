@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# uv
+
+# Environment / Secrets
+.env*
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+.kilo/
+
+# Testing
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+
+# Sessions / Runtime Data (keep .git, ignore session data)
+# Arachne session/runtime data
+~/.local/share/arachne/
+
+# Deno runtime cache
+deno_cache/
+
+# MCP configs
+.mcp.json
+.agent/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Generated artifacts
+*.md.output
+tmp/
+
+
+# Arachne secrets
+.env
+
+arachne.yaml

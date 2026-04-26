@@ -1,0 +1,28 @@
+# Auto-detect text files and normalize line endings
+* text=auto
+
+# Python source
+*.py text diff=python
+
+# Markdown
+*.md text
+
+# YAML/JSON/TOML config
+*.yaml text
+*.yml text
+*.json text
+*.toml text
+
+# Lock files
+uv.lock text
+
+# Shell scripts
+*.sh text eol=lf
+
+# Images
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
