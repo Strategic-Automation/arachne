@@ -60,7 +60,7 @@ class TestWeaveSimpleFactual:
             edges=[],
         )
 
-        with patch.object(a.weaver, "forward", return_value=dspy.Prediction(topology=mock_topo)):
+        with patch.object(a.weaver, "forward", return_value=dspy.Prediction(topology=mock_topo, is_complete=True)):
             result = a.weave("What is 2+2?")
 
         assert isinstance(result, GraphTopology)
@@ -111,7 +111,7 @@ class TestWeaveResearchTask:
             ],
         )
 
-        with patch.object(a.weaver, "forward", return_value=dspy.Prediction(topology=mock_topo)):
+        with patch.object(a.weaver, "forward", return_value=dspy.Prediction(topology=mock_topo, is_complete=True)):
             result = a.weave("Research the latest AI news")
 
         assert isinstance(result, GraphTopology)
@@ -153,7 +153,7 @@ class TestFullRunCycle:
         mock_exec_result.topology = mock_topo
 
         with (
-            patch.object(a.weaver, "forward", return_value=dspy.Prediction(topology=mock_topo)),
+            patch.object(a.weaver, "forward", return_value=dspy.Prediction(topology=mock_topo, is_complete=True)),
             patch("arachne.runtime.provision.provision_graph", return_value=mock_topo),
             patch.object(ExecutionManager, "execute", return_value=mock_exec_result),
         ):

@@ -89,7 +89,7 @@ class TestGraphWeaver:
         with (
             patch.object(w.clarifier, "forward", return_value=mock_clarification),
             patch.object(w.selector, "forward", return_value=mock_selection),
-            patch.object(w.weave, "forward", return_value=dspy.Prediction(topology=mock_topo)),
+            patch.object(w.weave, "forward", return_value=dspy.Prediction(topology=mock_topo, is_complete=True)),
         ):
             assert w(goal="g").topology.name == "t"
 
@@ -105,7 +105,7 @@ class TestGraphWeaver:
 
         with (
             patch.object(w.selector, "forward", return_value=mock_selection),
-            patch.object(w.weave, "forward", return_value=dspy.Prediction(topology=mock_topo)),
+            patch.object(w.weave, "forward", return_value=dspy.Prediction(topology=mock_topo, is_complete=True)),
         ):
             result = w(goal="g", failure_context="  \x00malicious\x00  ")
             assert "\x00" not in result.topology.name
@@ -123,7 +123,7 @@ class TestGraphWeaver:
         with (
             patch.object(w.clarifier, "forward", return_value=mock_clarification),
             patch.object(w.selector, "forward", return_value=mock_selection),
-            patch.object(w.weave, "forward", return_value=dspy.Prediction(topology=mock_topo)),
+            patch.object(w.weave, "forward", return_value=dspy.Prediction(topology=mock_topo, is_complete=True)),
         ):
             result = w(goal="g", modifications="a" * 6000)
             assert len(result.topology.name) > 0
@@ -155,7 +155,7 @@ class TestArachneCore:
             objective="o",
             nodes=[NodeDef(id="a", role=NodeRole.REACT, name="A", description="d", output="o")],
         )
-        with patch.object(a.weaver, "forward", return_value=dspy.Prediction(topology=mock)):
+        with patch.object(a.weaver, "forward", return_value=dspy.Prediction(topology=mock, is_complete=True)):
             assert a.weave(goal="g").name == "t"
 
 
