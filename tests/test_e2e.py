@@ -32,7 +32,8 @@ def _make_minimal_topology(name="test_graph", nodes=None, edges=None):
     return GraphTopology(
         name=name,
         objective="test objective",
-        nodes=nodes or [
+        nodes=nodes
+        or [
             NodeDef(id="node_1", role=NodeRole.REACT, name="Node1", description="test", output="result"),
         ],
         edges=edges or [],
@@ -40,6 +41,7 @@ def _make_minimal_topology(name="test_graph", nodes=None, edges=None):
 
 
 # ── Test 1: Weave simple factual ──────────────────────────────────────
+
 
 class TestWeaveSimpleFactual:
     def test_weave_simple_factual(self, settings):
@@ -74,6 +76,7 @@ class TestWeaveSimpleFactual:
 
 # ── Test 2: Weave research task ───────────────────────────────────────
 
+
 class TestWeaveResearchTask:
     def test_weave_research_task(self, settings):
         """Call Arachne.weave('Research the latest AI news') — verify topology, check custom_tools/custom_skills."""
@@ -107,8 +110,7 @@ class TestWeaveResearchTask:
                     code="def ai_news_fetcher(): pass",
                 ),
             ],
-            custom_skills=[
-            ],
+            custom_skills=[],
         )
 
         with patch.object(a.weaver, "forward", return_value=dspy.Prediction(topology=mock_topo, is_complete=True)):
@@ -126,6 +128,7 @@ class TestWeaveResearchTask:
 
 
 # ── Test 3: Full run cycle ────────────────────────────────────────────
+
 
 class TestFullRunCycle:
     def test_full_run_cycle(self, settings):
@@ -170,6 +173,7 @@ class TestFullRunCycle:
 
 # ── Test 4: Provision creates assets ──────────────────────────────────
 
+
 class TestProvisionCreatesAssets:
     def test_provision_creates_assets(self, settings):
         """Provision a topology with custom tools, verify ToolMaker is called."""
@@ -202,6 +206,7 @@ class TestProvisionCreatesAssets:
 
 # ── Test 5: Evaluate passing ──────────────────────────────────────────
 
+
 class TestEvaluatePassing:
     def test_evaluate_passing(self):
         """Wire up evaluator with a good result — verify confidence >= threshold."""
@@ -220,9 +225,7 @@ class TestEvaluatePassing:
             success=True,
         )
 
-        mock_semantic = dspy.Prediction(
-            evaluation=SemanticResult(score=0.95, issues=[], improvements=[])
-        )
+        mock_semantic = dspy.Prediction(evaluation=SemanticResult(score=0.95, issues=[], improvements=[]))
 
         with patch.object(evaluator.semantic_eval, "forward", return_value=mock_semantic):
             pred = evaluator(
@@ -240,6 +243,7 @@ class TestEvaluatePassing:
 
 
 # ── Test 6: Evaluate failing ──────────────────────────────────────────
+
 
 class TestEvaluateFailing:
     def test_evaluate_failing(self):
@@ -289,6 +293,7 @@ class TestEvaluateFailing:
 
 # ── Test 7: Arachne init ──────────────────────────────────────────────
 
+
 class TestArachneInit:
     def test_arachne_init(self, settings):
         """Constructor validates settings, creates weaver, evaluator."""
@@ -305,6 +310,7 @@ class TestArachneInit:
 
 
 # ── Test 8: Weave with constraints ────────────────────────────────────
+
 
 class TestWeaveWithConstraints:
     def test_weave_with_constraints(self, settings):

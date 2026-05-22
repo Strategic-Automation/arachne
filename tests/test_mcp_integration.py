@@ -40,6 +40,7 @@ if __name__ == "__main__":
 async def test_mcp_tool_discovery_and_call():
     """Test MCP tool discovery, conversion to dspy.Tool, and execution."""
     import platform
+
     if platform.system() == "Windows":
         pytest.skip("MCP stdio transport not supported on Windows")
 
