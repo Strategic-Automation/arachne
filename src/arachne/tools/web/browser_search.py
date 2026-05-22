@@ -50,15 +50,11 @@ async def _extract_google_links(page) -> list[str]:
     return results
 
 
-async def _search_google_async(pw, query: str) -> str:
+async def _search_google_async(browser, query: str) -> str:
     """Search Google with stealth browser and return results."""
     ua = random.choice(_REALISTIC_UAS)
     vp = random.choice(_VIEWPORTS)
 
-    browser = await pw.chromium.launch(
-        headless=True,
-        args=["--disable-blink-features=AutomationControlled", "--no-first-run"],
-    )
     context = await browser.new_context(
         viewport=vp,
         user_agent=ua,
@@ -97,7 +93,7 @@ async def _search_google_async(pw, query: str) -> str:
     except Exception as e:
         return f"### Search Error\nSearch failed for '{query}': {e}"
     finally:
-        await browser.close()
+        await context.close()
 
 
 async def browser_search_async(queries: str) -> str:
@@ -119,8 +115,15 @@ async def browser_search_async(queries: str) -> str:
         console.print(f'    [cyan]🌐 Browser Search for:[/cyan] [bold]"{q}"[/bold]')
 
     async with async_playwright() as pw:
-        tasks = [_search_google_async(pw, q) for q in query_list]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        browser = await pw.chromium.launch(
+            headless=True,
+            args=["--disable-blink-features=AutomationControlled", "--no-first-run"],
+        )
+        try:
+            tasks = [_search_google_async(browser, q) for q in query_list]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+        finally:
+            await browser.close()
 
     parts: list[str] = []
     for r in results:

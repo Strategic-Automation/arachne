@@ -3,6 +3,7 @@
 Validates that graph topologies produce outputs matching expected patterns.
 Unit tests — no real LLM calls.
 """
+
 import pytest
 
 from arachne.topologies.schema import (
@@ -28,7 +29,8 @@ def _node(nid, role=NodeRole.REACT, inputs=None, output=None):
 def test_diamond_graph_output_propagation():
     """Diamond A->[B,C]->D: verify topological waves are correct."""
     topology = GraphTopology(
-        name="Diamond", objective="test",
+        name="Diamond",
+        objective="test",
         nodes=[
             _node("A", NodeRole.REACT, [], "a_out"),
             _node("B", NodeRole.PREDICT, ["a_out"], "b_out"),
@@ -53,7 +55,8 @@ def test_diamond_graph_output_propagation():
 def test_linear_graph_chain_propagation():
     """Linear A->B->C: verify topological ordering is sequential."""
     topology = GraphTopology(
-        name="Linear", objective="test",
+        name="Linear",
+        objective="test",
         nodes=[
             _node("A", NodeRole.REACT, [], "step_a"),
             _node("B", NodeRole.PREDICT, ["step_a"], "step_b"),
@@ -75,7 +78,8 @@ def test_linear_graph_chain_propagation():
 def test_single_node_graph():
     """Single REACT node graph is valid."""
     topology = GraphTopology(
-        name="Solo", objective="test",
+        name="Solo",
+        objective="test",
         nodes=[_node("only", NodeRole.REACT, [], "answer")],
         edges=[],
     )
@@ -88,7 +92,8 @@ def test_single_node_graph():
 def test_topological_waves_ordering():
     """5-node graph: independent nodes are in same wave."""
     topology = GraphTopology(
-        name="Complex", objective="test",
+        name="Complex",
+        objective="test",
         nodes=[
             _node("a", NodeRole.REACT, [], "a"),
             _node("b", NodeRole.REACT, [], "b"),
@@ -115,7 +120,8 @@ def test_graph_cycle_detection():
     """Topology with a cycle raises ValueError."""
     with pytest.raises(ValueError, match="cycle"):
         GraphTopology(
-            name="Cyclic", objective="test",
+            name="Cyclic",
+            objective="test",
             nodes=[
                 _node("A", NodeRole.REACT, ["c_out"], "a_out"),
                 _node("B", NodeRole.PREDICT, ["a_out"], "b_out"),
@@ -133,15 +139,24 @@ def test_graph_root_node_must_be_react():
     """Root nodes with incoming edges from nowhere must have react or recursive role."""
     with pytest.raises(ValueError, match="Root node"):
         GraphTopology(
-            name="BadRoot", objective="test",
+            name="BadRoot",
+            objective="test",
             nodes=[
                 NodeDef(
-                    id="A", name="A", role=NodeRole.PREDICT,
-                    description="Bad root", inputs=[], output="out",
+                    id="A",
+                    name="A",
+                    role=NodeRole.PREDICT,
+                    description="Bad root",
+                    inputs=[],
+                    output="out",
                 ),
                 NodeDef(
-                    id="B", name="B", role=NodeRole.PREDICT,
-                    description="Child", inputs=["out"], output="b_out",
+                    id="B",
+                    name="B",
+                    role=NodeRole.PREDICT,
+                    description="Child",
+                    inputs=["out"],
+                    output="b_out",
                 ),
             ],
             edges=[EdgeDef(source="A", target="B")],  # edges trigger root validation
@@ -151,7 +166,8 @@ def test_graph_root_node_must_be_react():
 def test_nodes_dict_access():
     """GraphTopology.nodes_dict provides id-to-node lookup."""
     topology = GraphTopology(
-        name="Lookup", objective="test",
+        name="Lookup",
+        objective="test",
         nodes=[
             _node("input", NodeRole.REACT, [], "raw"),
             _node("process", NodeRole.PREDICT, ["raw"], "result"),

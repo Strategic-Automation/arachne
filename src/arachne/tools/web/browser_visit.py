@@ -43,15 +43,11 @@ def _clean_text(text: str) -> str:
     return text[:MAX_CHARS]
 
 
-async def _fetch_page_async(pw, url: str) -> tuple[str, str]:
+async def _fetch_page_async(browser, url: str) -> tuple[str, str]:
     """Fetch a single page with a stealthy browser."""
     ua = random.choice(_REALISTIC_UAS)
     vp = random.choice(_VIEWPORTS)
 
-    browser = await pw.chromium.launch(
-        headless=True,
-        args=["--disable-blink-features=AutomationControlled", "--disable-infobars", "--no-first-run"],
-    )
     context = await browser.new_context(
         viewport=vp,
         user_agent=ua,
@@ -75,7 +71,7 @@ async def _fetch_page_async(pw, url: str) -> tuple[str, str]:
     except Exception as exc:
         return url.strip(), f"Failed to load {url}: {exc}"
     finally:
-        await browser.close()
+        await context.close()
 
 
 @dspy.Tool
@@ -93,12 +89,26 @@ async def browser_visit_async(urls: str, **_kwargs) -> str:
     url_list = [u.strip() for u in urls.split(",") if u.strip()]
     if len(url_list) == 1:
         async with async_playwright() as pw:
-            _, text = await _fetch_page_async(pw, url_list[0])
-            result_text = text
+            browser = await pw.chromium.launch(
+                headless=True,
+                args=["--disable-blink-features=AutomationControlled", "--disable-infobars", "--no-first-run"],
+            )
+            try:
+                _, text = await _fetch_page_async(browser, url_list[0])
+                result_text = text
+            finally:
+                await browser.close()
     else:
         async with async_playwright() as pw:
-            tasks = [_fetch_page_async(pw, u) for u in url_list]
-            visit_results = await asyncio.gather(*tasks, return_exceptions=True)
+            browser = await pw.chromium.launch(
+                headless=True,
+                args=["--disable-blink-features=AutomationControlled", "--disable-infobars", "--no-first-run"],
+            )
+            try:
+                tasks = [_fetch_page_async(browser, u) for u in url_list]
+                visit_results = await asyncio.gather(*tasks, return_exceptions=True)
+            finally:
+                await browser.close()
 
         parts: list[str] = []
         for result in visit_results:

@@ -47,8 +47,10 @@ def test_shell_exec_truncation():
 # --- System Time Tests ---
 def test_get_current_time_valid_tz():
     """Test getting time in a valid timezone."""
-    with patch("arachne.tools.system.system_time.datetime") as mock_datetime, \
-         patch("arachne.tools.system.system_time.ZoneInfo") as mock_zoneinfo:
+    with (
+        patch("arachne.tools.system.system_time.datetime") as mock_datetime,
+        patch("arachne.tools.system.system_time.ZoneInfo") as mock_zoneinfo,
+    ):
         mock_now = MagicMock()
         mock_now.strftime.return_value = "Current Date and Time: Monday, January 01, 2024 at 12:00:00 PM UTC"
         mock_datetime.datetime.now.return_value = mock_now
