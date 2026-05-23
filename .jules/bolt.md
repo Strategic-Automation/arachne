@@ -1,0 +1,3 @@
+## 2024-05-23 - Avoid Path.iterdir() and Path.glob() for large directories
+**Learning:** `pathlib.Path.iterdir()` with `stat()` sorting and `Path.read_text()` can be quite slow in Python due to object instantiation overhead and sys calls. `os.scandir()` provides cached attributes (like `st_mtime` and `is_dir()`) and is significantly faster for directory traversal and filtering. Additionally, `open(..., 'rb')` with `json.load()` can be slightly faster than `Path.read_text()` with `json.loads()` for bulk reading.
+**Action:** Use `os.scandir()` which returns `DirEntry` objects with cached stats when traversing directories for metadata or filtering. Use `open(..., 'rb')` with `json.load()` over `path.read_text()` + `json.loads()` for bulk file processing.
