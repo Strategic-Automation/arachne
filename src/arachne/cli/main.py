@@ -368,7 +368,7 @@ def clean_sessions(
 
     base = default_session_dir()
     if not base.exists():
-        console.print("[dim]No sessions found.[/dim]")
+        console.print("[dim]No sessions found to clean.[/dim]")
         return
 
     cutoff = time.time() - (older_than_days * 86400) if older_than_days else 0
@@ -404,7 +404,7 @@ def ls_sessions(limit: int = typer.Option(None, "--limit", "-n", help="Limit num
 
     base = default_session_dir()
     if not base.exists():
-        console.print("[dim]No sessions found.[/dim]")
+        console.print("[dim]No sessions found. Run a goal with [bold white]arachne run[/bold white] first.[/dim]")
         return
 
     sessions = sorted(base.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
