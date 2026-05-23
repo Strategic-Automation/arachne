@@ -514,12 +514,10 @@ def resume(
 
     if interactive:
         choice = questionary.select("  Action", choices=["Resume", "Cancel", "Edit"]).ask()
-        if choice == "Cancel" or choice is None:
+        if choice == "Cancel":
             return
         if choice == "Edit":
             mods = questionary.text("What changes?").ask()
-            if mods is None:
-                return
             topology = arachne.weave(goal=arachne._session.load_inputs().get("goal", ""), modifications=mods)
 
     try:
