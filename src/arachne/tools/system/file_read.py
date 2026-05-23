@@ -9,10 +9,24 @@ from arachne.sessions.manager import active_session_path
 def read_file(path: str) -> str:
     """Read the contents of a file. Returns first 2000 chars."""
     p = Path(path)
-    if not p.is_absolute() and not p.exists():
-        sess_path = active_session_path.get()
-        if sess_path:
-            p = sess_path / "outputs" / p
+
+    sess_path = active_session_path.get()
+
+    if p.is_absolute():
+        # Prevent absolute paths from escaping the intended sandbox
+        target_path = p.resolve()
+        base_dir = (sess_path / "outputs").resolve() if sess_path else Path.cwd().resolve()
+    else:
+        if not p.exists() and sess_path:
+            base_dir = (sess_path / "outputs").resolve()
+            target_path = (base_dir / p).resolve()
+        else:
+            base_dir = Path.cwd().resolve()
+            target_path = (base_dir / p).resolve()
+
+    if not target_path.is_relative_to(base_dir):
+        return f"Error: Path traversal detected. Access to {path} is denied."
+    p = target_path
 
     safe_path = os.path.realpath(str(p))
     try:

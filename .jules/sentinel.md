@@ -1,0 +1,4 @@
+## 2024-05-23 - Path Traversal Vulnerability in `read_file` and `write_local_file`
+**Vulnerability:** Path traversal (CWE-22) existed in `src/arachne/tools/system/file_read.py` and `src/arachne/tools/system/file_write.py`. The system accepted absolute paths directly, and only prepended the session `outputs` directory for relative paths that did not exist.
+**Learning:** Because Python's `Path` treats paths with a leading `/` as absolute, it ignored any relative logic entirely. In a web/agent sandbox tool like Arachne, file read/write tools must explicitly verify that resolved target paths are constrained (`is_relative_to()`) to an intended base workspace directory.
+**Prevention:** Always define a base directory, resolve it, resolve the target user path, and explicitly verify that `target_path.is_relative_to(base_dir)`. Simply prepending directories to strings or using `os.path.realpath` is not a comprehensive path traversal defense.
