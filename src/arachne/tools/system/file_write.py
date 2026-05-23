@@ -17,10 +17,7 @@ def write_local_file(path: str, content: str) -> str:
         target_path = p.resolve()
         base_dir = (sess_path / "outputs").resolve() if sess_path else Path.cwd().resolve()
     else:
-        if sess_path:
-            base_dir = (sess_path / "outputs").resolve()
-        else:
-            base_dir = Path.cwd().resolve()
+        base_dir = (sess_path / "outputs").resolve() if sess_path else Path.cwd().resolve()
 
         target_path = (base_dir / p).resolve()
 
