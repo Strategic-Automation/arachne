@@ -556,9 +556,15 @@ class ExecutionManager:
 
         from arachne.topologies.schema import QuestionType
 
+        def _safe_ask(prompt: Any) -> Any:
+            result = prompt.ask()
+            if result is None:
+                raise KeyboardInterrupt()
+            return result
+
         q_obj = node_def.question
         if not q_obj:
-            return questionary.text("  Please provide input:").ask()
+            return _safe_ask(questionary.text("  Please provide input:"))
 
         # Robust extraction for both Pydantic models and plain dictionaries
         if isinstance(q_obj, dict):
@@ -590,9 +596,9 @@ class ExecutionManager:
 
         # Handle different question types
         if q_type == QuestionType.SELECT and choices:
-            return questionary.select(msg, choices=choices, default=default or choices[0]).ask()
+            return _safe_ask(questionary.select(msg, choices=choices, default=default or choices[0]))
         if q_type == QuestionType.CONFIRM:
-            val = questionary.confirm(msg, default=str(default).lower() == "true" if default else True).ask()
+            val = _safe_ask(questionary.confirm(msg, default=str(default).lower() == "true" if default else True))
             return str(val)
 
-        return questionary.text(msg, default=str(default)).ask()
+        return _safe_ask(questionary.text(msg, default=str(default)))

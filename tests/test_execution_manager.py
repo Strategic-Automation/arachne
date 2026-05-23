@@ -291,7 +291,9 @@ class TestExecuteNodeFailure:
         topology = _make_linear_topology(["A", "B", "C"])
         # B fails, A completed
         run_result = _make_run_result(
-            "FailGraph", "failing task", ["A", "B", "C"],
+            "FailGraph",
+            "failing task",
+            ["A", "B", "C"],
             [ResultStatus.COMPLETED, ResultStatus.FAILED, ResultStatus.SKIPPED],
         )
         run_result.node_results[1].error = "Simulated failure"
@@ -312,7 +314,7 @@ class TestExecuteNodeFailure:
                 settings=settings,
                 weaver=weaver,
                 evaluator=evaluator,
-                max_retries=0,   # zero retries => circuit breaker triggers
+                max_retries=0,  # zero retries => circuit breaker triggers
             )
             mgr.auto_healer = MagicMock(return_value=mock_diag)
             result = mgr.execute(goal="failing task", topology=topology)
@@ -327,7 +329,9 @@ class TestExecuteNodeFailure:
         evaluator = MagicMock(spec=TriangulatedEvaluator)
         topology = _make_linear_topology(["A", "B", "C"])
         run_result_first = _make_run_result(
-            "RetryGraph", "retry task", ["A", "B", "C"],
+            "RetryGraph",
+            "retry task",
+            ["A", "B", "C"],
             [ResultStatus.COMPLETED, ResultStatus.FAILED, ResultStatus.SKIPPED],
         )
         run_result_first.node_results[1].error = "Timeout error"
@@ -357,8 +361,10 @@ class TestNodeExecutorBuildModule:
     @pytest.fixture
     def exec_factory(self, settings):
         """Return a factory for NodeExecutor given a node."""
+
         def _make(node):
             return NodeExecutor(node=node, settings=settings)
+
         return _make
 
     def test_build_module_predict_role(self, exec_factory):
@@ -531,11 +537,7 @@ class TestCollectOutputs:
         )
 
         # Extract outputs from successful nodes (like _handle_low_quality does)
-        completed = {
-            nr.node_id: nr
-            for nr in run_result.node_results
-            if nr.status == ResultStatus.COMPLETED
-        }
+        completed = {nr.node_id: nr for nr in run_result.node_results if nr.status == ResultStatus.COMPLETED}
 
         assert len(completed) == 2
         assert "A" in completed
@@ -556,11 +558,7 @@ class TestCollectOutputs:
             node_results=node_results,
         )
 
-        completed = {
-            nr.node_id: nr
-            for nr in run_result.node_results
-            if nr.status == ResultStatus.COMPLETED
-        }
+        completed = {nr.node_id: nr for nr in run_result.node_results if nr.status == ResultStatus.COMPLETED}
 
         assert len(completed) == 0
 
@@ -577,11 +575,7 @@ class TestCollectOutputs:
             node_results=node_results,
         )
 
-        completed = {
-            nr.node_id: nr
-            for nr in run_result.node_results
-            if nr.status == ResultStatus.COMPLETED
-        }
+        completed = {nr.node_id: nr for nr in run_result.node_results if nr.status == ResultStatus.COMPLETED}
 
         assert len(completed) == 1
         assert "A" in completed
@@ -716,6 +710,7 @@ class TestRunAsyncSafe:
 
     def test_returns_coroutine_result(self):
         """_run_async_safe should run a coroutine and return its result."""
+
         async def sample():
             return ("ok", {"x": 1})
 
@@ -804,15 +799,16 @@ class TestDiagnoseFailure:
         mgr.auto_healer = mock_healer
 
         topology = _make_linear_topology(["A", "B"])
-        run_result = _make_run_result("Diag", "diag goal", ["A", "B"],
-                                       [ResultStatus.COMPLETED, ResultStatus.FAILED])
+        run_result = _make_run_result("Diag", "diag goal", ["A", "B"], [ResultStatus.COMPLETED, ResultStatus.FAILED])
         run_result.node_results[1].error = "KeyError: missing input"
 
-        failed = [nr for nr in run_result.node_results if nr.status.value not in
-                   (ResultStatus.COMPLETED, ResultStatus.SKIPPED)]
+        failed = [
+            nr
+            for nr in run_result.node_results
+            if nr.status.value not in (ResultStatus.COMPLETED, ResultStatus.SKIPPED)
+        ]
 
-        result = mgr._diagnose_failure("diag goal", topology, dspy.Prediction(run_result=run_result),
-                                       failed, [])
+        result = mgr._diagnose_failure("diag goal", topology, dspy.Prediction(run_result=run_result), failed, [])
 
         assert result.fix_strategy == "re-weave"
         assert result.fix_description == "Redesign graph"
