@@ -73,9 +73,15 @@ class RichTerminalOutput:
 
         from arachne.topologies.schema import QuestionType
 
+        def _safe_ask(prompt: Any) -> Any:
+            result = prompt.ask()
+            if result is None:
+                raise KeyboardInterrupt()
+            return result
+
         q_obj = node_def.question
         if not q_obj:
-            return questionary.text("  Please provide input:").ask()
+            return _safe_ask(questionary.text("  Please provide input:"))
 
         # Robust extraction for both Pydantic models and plain dictionaries
         if isinstance(q_obj, dict):
@@ -101,12 +107,14 @@ class RichTerminalOutput:
         default = _substitute(str(default), inputs) if default else default
 
         if q_type == QuestionType.SELECT and choices:
-            return questionary.select(prompt_text, choices=choices, default=default or choices[0]).ask()
+            return _safe_ask(questionary.select(prompt_text, choices=choices, default=default or choices[0]))
         if q_type == QuestionType.CONFIRM:
-            val = questionary.confirm(prompt_text, default=str(default).lower() == "true" if default else True).ask()
+            val = _safe_ask(
+                questionary.confirm(prompt_text, default=str(default).lower() == "true" if default else True)
+            )
             return str(val)
 
-        return questionary.text(prompt_text, default=str(default)).ask()
+        return _safe_ask(questionary.text(prompt_text, default=str(default)))
 
 
 class HeadlessOutput:
