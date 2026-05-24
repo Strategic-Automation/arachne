@@ -1,9 +1,17 @@
-"""Read files."""
-
 import os
 from pathlib import Path
 
 from arachne.sessions.manager import active_session_path
+
+
+def is_safe_path(path: Path) -> bool:
+    """Check if the path is within allowed directories."""
+    resolved = path.resolve()
+    allowed_dirs = [Path.cwd().resolve()]
+    sess_path = active_session_path.get()
+    if sess_path:
+        allowed_dirs.append((sess_path / "outputs").resolve())
+    return any(resolved.is_relative_to(d) for d in allowed_dirs)
 
 
 def read_file(path: str) -> str:
@@ -13,6 +21,9 @@ def read_file(path: str) -> str:
         sess_path = active_session_path.get()
         if sess_path:
             p = sess_path / "outputs" / p
+
+    if not is_safe_path(p):
+        return f"Error: Path traversal detected. Access to {path} is denied."
 
     safe_path = os.path.realpath(str(p))
     try:
