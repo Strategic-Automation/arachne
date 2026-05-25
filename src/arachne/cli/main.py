@@ -350,7 +350,9 @@ def delete_session(session_id: str) -> None:
 
     session_path = default_session_dir() / session_id
     if not session_path.exists():
-        console.print(f"[red]Session '{session_id}' not found.[/red]")
+        console.print(
+            f"[red]Session '{session_id}' not found.[/red]\n[dim]Use [bold white]arachne ls[/bold white] to see available sessions.[/dim]"
+        )
         return
 
     if typer.confirm(f"Are you sure you want to delete session '{session_id}'?"):
@@ -482,7 +484,9 @@ def resume(
 
     base = default_session_dir() / session_id
     if not base.exists():
-        console.print(f"[bold red]Error:[/bold red] Session '{session_id}' not found.")
+        console.print(
+            f"[bold red]Error:[/bold red] Session '{session_id}' not found.\n[dim]Use [bold white]arachne ls[/bold white] to see available sessions.[/dim]"
+        )
         sys.exit(1)
 
     graph_path = base / "graph.json"
@@ -586,7 +590,9 @@ def show(id_or_sid: str = typer.Argument(..., help="Session ID (run_...) or Grap
             path = cache_path
 
     if not path or not path.exists():
-        console.print(f"[bold red]Error:[/bold red] '{id_or_sid}' not found as session or cached graph.")
+        console.print(
+            f"[bold red]Error:[/bold red] '{id_or_sid}' not found as session or cached graph.\n[dim]Use [bold white]arachne ls[/bold white] or [bold white]arachne graphs[/bold white] to see available IDs.[/dim]"
+        )
         sys.exit(1)
 
     try:
@@ -630,7 +636,9 @@ def rerun(
                 input_goal = topo_data.get("objective")
 
     if not topology_path or not topology_path.exists():
-        console.print(f"[bold red]Error:[/bold red] Could not find graph for '{id_or_sid}'.")
+        console.print(
+            f"[bold red]Error:[/bold red] Could not find graph for '{id_or_sid}'.\n[dim]Use [bold white]arachne ls[/bold white] or [bold white]arachne graphs[/bold white] to see available IDs.[/dim]"
+        )
         sys.exit(1)
 
     if not input_goal:
@@ -832,7 +840,10 @@ def callback(
 ) -> None:
     """Arachne -- Runtime harness for production AI agents."""
     _ensure_logging()
-    show_banner()
+
+    if ctx.invoked_subcommand is None or list_tools:
+        show_banner()
+
     if list_tools:
         names = get_tool_names()
         table = Table(title="[bold]Available Tools[/bold]", box=None)
@@ -842,6 +853,7 @@ def callback(
             table.add_row(name, "Built-in" if is_tool_builtin(name) else "Custom")
         console.print(table)
         raise typer.Exit()
+
     if ctx.invoked_subcommand is None:
         typer.echo(ctx.get_help())
 
