@@ -1,0 +1,4 @@
+## 2026-05-25 - Prevent Path Traversal in Agent Tool File Operations
+**Vulnerability:** The built-in agent file tools `read_file` and `write_local_file` lacked restrictions on directory traversal. This allowed agents (or tools running arbitrary code) to potentially read sensitive system files (like `/etc/passwd`) or write arbitrary files, as only a simple absolute path check and `os.path.realpath` was done.
+**Learning:** `os.path.realpath` does not prevent path traversal if the resulting real path is not validated against allowed directory scopes. Agent tools must strictly bind filesystem interactions to the current working directory or explicit active session paths to preserve a secure sandbox.
+**Prevention:** Use `Path.resolve().is_relative_to(allowed_dir)` to enforce that resolved, absolute paths definitively stay within the allowed operational sandbox (`Path.cwd()` and `session_outputs`).
