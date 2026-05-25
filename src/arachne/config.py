@@ -302,9 +302,16 @@ def get_context_limit(model_name: str, settings: Settings) -> tuple[int, str]:
             if len(parts) > 2:
                 clean_name = "/".join(parts[1:])
 
-        limit = litellm.get_max_tokens(clean_name)
+        try:
+            limit = litellm.get_max_tokens(clean_name)
+        except Exception:
+            limit = None
+
         if not limit and "/" in model_name:
-            limit = litellm.get_max_tokens(model_name)
+            try:
+                limit = litellm.get_max_tokens(model_name)
+            except Exception:
+                limit = None
 
         if limit and isinstance(limit, int):
             return limit, "LiteLLM Mapping"
