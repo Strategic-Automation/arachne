@@ -1,0 +1,7 @@
+<<<<<<< SEARCH
+    elif llm_backend == "ollama" and llm_base_url:
+        detected = fetch_ollama_limits(model_name, llm_base_url)
+=======
+    elif llm_backend == "ollama":
+        detected = fetch_ollama_limits(model_name, llm_base_url)
+>>>>>>> REPLACE
