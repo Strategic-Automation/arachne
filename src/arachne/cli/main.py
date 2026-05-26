@@ -410,6 +410,9 @@ def ls_sessions(limit: int = typer.Option(None, "--limit", "-n", help="Limit num
         return
 
     sessions = sorted(base.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+    if not sessions:
+        console.print("[dim]No sessions found. Run a goal with [bold white]arachne run[/bold white] first.[/dim]")
+        return
     if limit:
         sessions = sessions[:limit]
 
@@ -542,9 +545,10 @@ def list_graphs() -> None:
     # Cache dir logic matching core.py
     cache_dir = settings.session.directory.parent / "topology-cache"
     if not cache_dir.exists():
-        console.print("[dim]No cached graphs found.[/dim]")
+        console.print("[dim]No cached graphs found. Run a goal with [bold white]arachne run[/bold white] first.[/dim]")
         return
 
+    graphs_found = False
     table = Table(show_header=True)
     table.add_column("Graph ID (Hash)", style="cyan")
     table.add_column("Name", style="green")
@@ -562,8 +566,13 @@ def list_graphs() -> None:
                 topo.objective[:60] + "..." if len(topo.objective) > 60 else topo.objective,
                 str(len(topo.nodes)),
             )
+            graphs_found = True
         except Exception:
             continue
+
+    if not graphs_found:
+        console.print("[dim]No cached graphs found. Run a goal with [bold white]arachne run[/bold white] first.[/dim]")
+        return
 
     console.print(table)
     console.print("\n[dim]Use [bold white]arachne show <graph-id>[/bold white] to view details.[/dim]")
@@ -675,9 +684,12 @@ def cat_session(
 
     base = default_session_dir()
     if session_id == "last":
+        if not base.exists():
+            console.print("[red]No sessions found. Run a goal with [bold white]arachne run[/bold white] first.[/red]")
+            return
         sessions = sorted(base.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
         if not sessions:
-            console.print("[red]No sessions found.[/red]")
+            console.print("[red]No sessions found. Run a goal with [bold white]arachne run[/bold white] first.[/red]")
             return
         session_id = sessions[0].name
 
@@ -686,7 +698,9 @@ def cat_session(
     graph_path = session_path / "graph.json"
 
     if not state_path.exists():
-        console.print(f"[bold red]Error:[/bold red] No results found for session '{session_id}'.")
+        console.print(
+            f"[bold red]Error:[/bold red] No results found for session '{session_id}'.\n[dim]Run a goal with [bold white]arachne run[/bold white] first.[/dim]"
+        )
         return
 
     try:
@@ -712,7 +726,9 @@ def cat_session(
                     found_any = True
 
         if not found_any:
-            console.print("[yellow]No final outputs found in this session.[/yellow]")
+            console.print(
+                "[yellow]No final outputs found in this session.[/yellow]\n[dim]You can check the execution status with [bold white]arachne ls[/bold white] or run a new goal.[/dim]"
+            )
 
     except Exception as e:
         console.print(f"[bold red]Error loading results:[/bold red] {e}")

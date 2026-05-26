@@ -1,5 +1,4 @@
 """Arachne CLI Display -- formatting and pretty-printing logic."""
-# ruff: noqa: RUF001, W291
 
 import os
 import re
@@ -17,14 +16,8 @@ console = Console()
 
 def show_banner() -> None:
     """Display the Arachne ASCII banner with Rich styling."""
-    banner_text = r"""
- █████  ██████   █████   ██████ ██   ██ ███    ██ ███████ 
-██   ██ ██   ██ ██   ██ ██      ██   ██ ████   ██ ██      
-███████ ██████  ███████ ██      ███████ ██ ██  ██ █████ 
-██   ██ ██   ██ ██   ██ ██      ██   ██ ██  ██ ██ ██    
-██   ██ ██   ██ ██   ██  ██████ ██   ██ ██   ████ ███████ 
-"""
-    console.print(f"[cyan]{banner_text}[/cyan]")
+    banner_text = "🕷️ Arachne CLI"
+    console.print(f"[cyan bold]{banner_text}[/cyan bold]")
     console.print("[dim]  Runtime harness for production AI agents[/dim]\n")
 
 
