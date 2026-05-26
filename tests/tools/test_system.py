@@ -74,22 +74,40 @@ def test_read_file_success():
     with patch("builtins.open") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = mock_content
 
-        result = read_file("/absolute/path/test.txt")
+        result = read_file("test.txt")
         assert len(result) == 2000
 
 
 def test_read_file_error():
     """Test reading a file that doesn't exist."""
     with patch("builtins.open", side_effect=FileNotFoundError("No such file")):
-        result = read_file("/missing.txt")
+        result = read_file("missing.txt")
         assert "Error reading" in result
 
 
 def test_write_file_success():
     """Test writing a file creates directories and writes content."""
     with patch("os.makedirs") as mock_makedirs, patch("builtins.open") as mock_open:
-        result = write_local_file("/path/to/test.txt", "Hello File")
+        # Note: In the new implementation, we need to make sure the mock path is inside cwd
+        # But for absolute paths, the check is based on `Path.cwd().resolve()`.
+        # To make this test pass without modifying cwd, we use a relative path that resolves to cwd.
+        result = write_local_file("test.txt", "Hello File")
 
         assert "Successfully wrote" in result
         mock_makedirs.assert_called_once()
         mock_open.assert_called_once()
+
+
+def test_read_file_path_traversal():
+    """Test reading a file outside allowed directories."""
+    result = read_file("/etc/passwd")
+    assert "Security Error: Access to" in result
+
+
+def test_write_local_file_path_traversal():
+    """Test writing a file outside allowed directories."""
+    result = write_local_file("/etc/passwd", "test")
+    assert "Security Error: Access to" in result
+
+    result2 = write_local_file("../../../../../../etc/passwd", "test")
+    assert "Security Error: Access to" in result2
