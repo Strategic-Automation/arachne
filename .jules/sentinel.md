@@ -1,0 +1,4 @@
+## 2024-05-24 - Path Traversal in File Operations
+**Vulnerability:** The `read_file` and `write_local_file` tools allowed reading and writing arbitrary files outside of the allowed boundaries (current working directory and session outputs) due to an insufficient check (only `realpath` without strict boundary checking). This could allow agents or malicious inputs to access sensitive system files like `/etc/passwd`.
+**Learning:** Checking `is_absolute()` and doing `realpath` mapping is not enough to prevent path traversal when paths can contain `../` sequences that resolve outside intended boundaries. It is crucial to check the resolved path against explicitly allowed base directories.
+**Prevention:** Always use `Path.resolve().is_relative_to(base_dir.resolve())` to strictly enforce that file operations are confined to an allowed directory boundary, mitigating path traversal vulnerabilities.

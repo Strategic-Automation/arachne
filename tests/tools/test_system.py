@@ -68,28 +68,52 @@ def test_get_current_time_invalid_tz():
 
 
 # --- File Operations Tests ---
-def test_read_file_success():
+def test_read_file_success(tmp_path):
     """Test reading a file with truncation at 2000 chars."""
     mock_content = "File content here. " * 200
-    with patch("builtins.open") as mock_open:
-        mock_open.return_value.__enter__.return_value.read.return_value = mock_content
+    test_file = tmp_path / "test.txt"
+    test_file.write_text(mock_content)
 
-        result = read_file("/absolute/path/test.txt")
+    with patch("arachne.tools.system.file_read.Path.cwd", return_value=tmp_path):
+        result = read_file(str(test_file))
         assert len(result) == 2000
 
 
-def test_read_file_error():
+def test_read_file_error(tmp_path):
     """Test reading a file that doesn't exist."""
-    with patch("builtins.open", side_effect=FileNotFoundError("No such file")):
-        result = read_file("/missing.txt")
+    with patch("arachne.tools.system.file_read.Path.cwd", return_value=tmp_path):
+        result = read_file(str(tmp_path / "missing.txt"))
         assert "Error reading" in result
 
 
-def test_write_file_success():
+def test_write_file_success(tmp_path):
     """Test writing a file creates directories and writes content."""
-    with patch("os.makedirs") as mock_makedirs, patch("builtins.open") as mock_open:
-        result = write_local_file("/path/to/test.txt", "Hello File")
+    test_file = tmp_path / "test.txt"
+    with patch("arachne.tools.system.file_write.Path.cwd", return_value=tmp_path):
+        result = write_local_file(str(test_file), "Hello File")
 
         assert "Successfully wrote" in result
-        mock_makedirs.assert_called_once()
-        mock_open.assert_called_once()
+        assert test_file.exists()
+        assert test_file.read_text() == "Hello File"
+
+
+def test_read_file_path_traversal(tmp_path):
+    """Test that reading files outside allowed boundaries is blocked."""
+    with patch("arachne.tools.system.file_read.Path.cwd", return_value=tmp_path):
+        result = read_file("/etc/passwd")
+        assert "Security Error" in result
+        assert "Access to path '/etc/passwd' is denied" in result
+
+        result2 = read_file(str(tmp_path / ".." / "some_file.txt"))
+        assert "Security Error" in result2
+
+
+def test_write_file_path_traversal(tmp_path):
+    """Test that writing files outside allowed boundaries is blocked."""
+    with patch("arachne.tools.system.file_write.Path.cwd", return_value=tmp_path):
+        result = write_local_file("/etc/passwd", "hacked")
+        assert "Security Error" in result
+        assert "Access to path '/etc/passwd' is denied" in result
+
+        result2 = write_local_file(str(tmp_path / ".." / "some_file.txt"), "hacked")
+        assert "Security Error" in result2
