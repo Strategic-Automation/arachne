@@ -374,6 +374,7 @@ def clean_sessions(
         return
 
     cutoff = time.time() - (older_than_days * 86400) if older_than_days else 0
+    deleted_count = 0
 
     for session_dir in sorted(base.iterdir()):
         if not session_dir.is_dir():
@@ -395,8 +396,12 @@ def clean_sessions(
         if (failed_only and is_failed) or (older_than_days and too_old):
             console.print(f"  Deleting [yellow]{session_dir.name}[/yellow]...")
             shutil.rmtree(session_dir)
+            deleted_count += 1
 
-    console.print("[green]Cleanup complete.[/green]")
+    if deleted_count > 0:
+        console.print(f"[green]Cleanup complete. Deleted {deleted_count} session(s).[/green]")
+    else:
+        console.print("[dim]No sessions matched criteria for cleanup.[/dim]")
 
 
 @app.command("ls")
@@ -409,7 +414,11 @@ def ls_sessions(limit: int = typer.Option(None, "--limit", "-n", help="Limit num
         console.print("[dim]No sessions found. Run a goal with [bold white]arachne run[/bold white] first.[/dim]")
         return
 
-    sessions = sorted(base.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+    sessions = sorted([p for p in base.iterdir() if p.is_dir()], key=lambda p: p.stat().st_mtime, reverse=True)
+    if not sessions:
+        console.print("[dim]No sessions found. Run a goal with [bold white]arachne run[/bold white] first.[/dim]")
+        return
+
     if limit:
         sessions = sessions[:limit]
 
@@ -545,25 +554,33 @@ def list_graphs() -> None:
         console.print("[dim]No cached graphs found.[/dim]")
         return
 
+    graphs = []
+    for p in cache_dir.iterdir():
+        if p.suffix != ".json":
+            continue
+        try:
+            topo = GraphTopology.model_validate(_json.loads(p.read_text()))
+            graphs.append((p.stem, topo.name, topo.objective, str(len(topo.nodes))))
+        except Exception:
+            continue
+
+    if not graphs:
+        console.print("[dim]No cached graphs found.[/dim]")
+        return
+
     table = Table(show_header=True)
     table.add_column("Graph ID (Hash)", style="cyan")
     table.add_column("Name", style="green")
     table.add_column("Objective/Goal")
     table.add_column("Nodes", justify="right")
 
-    for p in cache_dir.iterdir():
-        if p.suffix != ".json":
-            continue
-        try:
-            topo = GraphTopology.model_validate(_json.loads(p.read_text()))
-            table.add_row(
-                p.stem,
-                topo.name,
-                topo.objective[:60] + "..." if len(topo.objective) > 60 else topo.objective,
-                str(len(topo.nodes)),
-            )
-        except Exception:
-            continue
+    for graph_id, name, objective, nodes_count in graphs:
+        table.add_row(
+            graph_id,
+            name,
+            objective[:60] + "..." if len(objective) > 60 else objective,
+            nodes_count,
+        )
 
     console.print(table)
     console.print("\n[dim]Use [bold white]arachne show <graph-id>[/bold white] to view details.[/dim]")

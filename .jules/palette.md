@@ -5,3 +5,7 @@
 ## 2026-05-25 - Actionable Error Messages
 **Learning:** Providing actionable guidance in error messages and empty states significantly reduces user friction. When a user queries a non-existent ID, giving them the exact command to find the correct ID is an immediate UX win.
 **Action:** Always append hints to "not found" or "empty" states that point the user to the correct command or workflow.
+
+## 2026-05-27 - Actionable Empty States
+**Learning:** Empty tables in CLI outputs with headers but no data are confusing and give the impression something is broken or loading. Explicitly catching empty conditions and displaying clear, helpful guidance ("No sessions found. Run a goal with arachne run first.") provides a much better experience.
+**Action:** Always intercept empty list states before rendering tables, displaying descriptive text and guiding users to the next sensible action.
