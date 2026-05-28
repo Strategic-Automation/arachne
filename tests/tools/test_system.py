@@ -74,22 +74,44 @@ def test_read_file_success():
     with patch("builtins.open") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = mock_content
 
-        result = read_file("/absolute/path/test.txt")
+        # Must use relative path or it will fail traversal checks
+        result = read_file("test.txt")
         assert len(result) == 2000
 
 
 def test_read_file_error():
     """Test reading a file that doesn't exist."""
     with patch("builtins.open", side_effect=FileNotFoundError("No such file")):
-        result = read_file("/missing.txt")
+        # We need to make it relative to CWD so it passes the boundary check,
+        # but fails the file open check
+        result = read_file("missing.txt")
         assert "Error reading" in result
+
+
+def test_read_file_path_traversal():
+    """Test that reading files outside allowed boundaries fails."""
+    result = read_file("../../../../etc/passwd")
+    assert "Access denied. Path is outside allowed directories." in result
+
+    result = read_file("/etc/passwd")
+    assert "Access denied. Path is outside allowed directories." in result
 
 
 def test_write_file_success():
     """Test writing a file creates directories and writes content."""
     with patch("os.makedirs") as mock_makedirs, patch("builtins.open") as mock_open:
-        result = write_local_file("/path/to/test.txt", "Hello File")
+        # Use a path relative to CWD to pass boundary check
+        result = write_local_file("path/to/test.txt", "Hello File")
 
         assert "Successfully wrote" in result
         mock_makedirs.assert_called_once()
         mock_open.assert_called_once()
+
+
+def test_write_file_path_traversal():
+    """Test that writing files outside allowed boundaries fails."""
+    result = write_local_file("../../../../etc/passwd", "hacked")
+    assert "Access denied. Path is outside allowed directories." in result
+
+    result = write_local_file("/etc/passwd", "hacked")
+    assert "Access denied. Path is outside allowed directories." in result
