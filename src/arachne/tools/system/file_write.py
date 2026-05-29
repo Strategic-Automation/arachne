@@ -9,14 +9,23 @@ from arachne.sessions.manager import active_session_path
 def write_local_file(path: str, content: str) -> str:
     """Write content to a file. Defaults to session outputs if relative path."""
     p = Path(path)
-    if not p.is_absolute():
-        sess_path = active_session_path.get()
-        if sess_path:
-            p = sess_path / "outputs" / p
+    sess_path = active_session_path.get()
 
-    os.makedirs(p.parent, exist_ok=True)
+    if not p.is_absolute() and sess_path:
+        p = sess_path / "outputs" / p
+
+    resolved = p.resolve()
+    # Security: Prevent path traversal by constraining to CWD or session outputs
+    is_safe = resolved.is_relative_to(Path.cwd().resolve())
+    if sess_path and not is_safe:
+        is_safe = resolved.is_relative_to((sess_path / "outputs").resolve())
+
+    if not is_safe:
+        return f"Error: Access denied. Path {path} is outside allowed boundaries."
+
+    os.makedirs(resolved.parent, exist_ok=True)
     try:
-        with open(p, "w") as f:
+        with open(resolved, "w") as f:
             f.write(content)
         return f"Successfully wrote {p}"
     except Exception as e:
