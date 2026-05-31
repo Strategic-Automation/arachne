@@ -68,28 +68,43 @@ def test_get_current_time_invalid_tz():
 
 
 # --- File Operations Tests ---
-def test_read_file_success():
+def test_read_file_success(tmp_path):
     """Test reading a file with truncation at 2000 chars."""
     mock_content = "File content here. " * 200
-    with patch("builtins.open") as mock_open:
-        mock_open.return_value.__enter__.return_value.read.return_value = mock_content
+    test_file = tmp_path / "test.txt"
+    test_file.write_text(mock_content)
 
-        result = read_file("/absolute/path/test.txt")
+    with patch("arachne.tools.system.file_read.Path.cwd", return_value=tmp_path):
+        result = read_file(str(test_file))
         assert len(result) == 2000
 
 
 def test_read_file_error():
     """Test reading a file that doesn't exist."""
     with patch("builtins.open", side_effect=FileNotFoundError("No such file")):
-        result = read_file("/missing.txt")
+        # Use relative path so it passes security check
+        result = read_file("missing.txt")
         assert "Error reading" in result
 
 
-def test_write_file_success():
+def test_write_file_success(tmp_path):
     """Test writing a file creates directories and writes content."""
-    with patch("os.makedirs") as mock_makedirs, patch("builtins.open") as mock_open:
-        result = write_local_file("/path/to/test.txt", "Hello File")
+    test_file = tmp_path / "to" / "test.txt"
+    with patch("arachne.tools.system.file_write.Path.cwd", return_value=tmp_path):
+        result = write_local_file(str(test_file), "Hello File")
 
         assert "Successfully wrote" in result
-        mock_makedirs.assert_called_once()
-        mock_open.assert_called_once()
+        assert test_file.exists()
+        assert test_file.read_text() == "Hello File"
+
+
+def test_read_file_security_violation():
+    """Test that reading outside the allowed directory is blocked."""
+    result = read_file("/etc/passwd")
+    assert "Access denied" in result
+
+
+def test_write_file_security_violation():
+    """Test that writing outside the allowed directory is blocked."""
+    result = write_local_file("/etc/passwd", "hacked")
+    assert "Access denied" in result

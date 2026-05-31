@@ -14,10 +14,27 @@ def write_local_file(path: str, content: str) -> str:
         if sess_path:
             p = sess_path / "outputs" / p
 
-    os.makedirs(p.parent, exist_ok=True)
     try:
-        with open(p, "w") as f:
+        resolved_path = p.resolve()
+
+        # Security constraint: path must be within cwd or active session outputs
+        is_allowed = False
+        if resolved_path.is_relative_to(Path.cwd().resolve()):
+            is_allowed = True
+
+        sess_path = active_session_path.get()
+        if sess_path:
+            outputs_dir = (sess_path / "outputs").resolve()
+            if resolved_path.is_relative_to(outputs_dir):
+                is_allowed = True
+
+        if not is_allowed:
+            return f"Error writing {path}: Access denied. Path is outside allowed directories."
+
+        os.makedirs(resolved_path.parent, exist_ok=True)
+
+        with open(resolved_path, "w") as f:
             f.write(content)
-        return f"Successfully wrote {p}"
+        return f"Successfully wrote {resolved_path}"
     except Exception as e:
         return f"Error writing {path}: {e}"
