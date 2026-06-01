@@ -71,24 +71,56 @@ def test_get_current_time_invalid_tz():
 def test_read_file_success():
     """Test reading a file with truncation at 2000 chars."""
     mock_content = "File content here. " * 200
+    # Use a safe path within cwd() to pass path traversal check
+    import os
+    safe_path = os.path.join(os.getcwd(), "test.txt")
+
     with patch("builtins.open") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = mock_content
 
-        result = read_file("/absolute/path/test.txt")
+        result = read_file(safe_path)
         assert len(result) == 2000
 
 
 def test_read_file_error():
     """Test reading a file that doesn't exist."""
-    with patch("builtins.open", side_effect=FileNotFoundError("No such file")):
-        result = read_file("/missing.txt")
-        assert "Error reading" in result
+    # Note: /missing.txt is an absolute path. It's safe if it resolves within allowed paths.
+    # Since we strictly check against cwd() now, an absolute path outside cwd() should fail with Access denied.
+    result = read_file("/missing.txt")
+    assert "Access denied" in result
+
+
+def test_read_file_path_traversal():
+    """Test path traversal with relative paths is blocked."""
+    result = read_file("../../pyproject.toml")
+    assert result == "Error reading ../../pyproject.toml: Access denied"
+
+
+def test_read_file_absolute_path_traversal():
+    """Test absolute path traversal is blocked."""
+    result = read_file("/etc/passwd")
+    assert result == "Error reading /etc/passwd: Access denied"
+
+
+def test_write_file_path_traversal():
+    """Test path traversal with relative paths is blocked for writing."""
+    result = write_local_file("../../test.txt", "content")
+    assert result == "Error writing ../../test.txt: Access denied"
+
+
+def test_write_file_absolute_path_traversal():
+    """Test absolute path traversal is blocked for writing."""
+    result = write_local_file("/etc/passwd", "content")
+    assert result == "Error writing /etc/passwd: Access denied"
 
 
 def test_write_file_success():
     """Test writing a file creates directories and writes content."""
+    import os
+    safe_path = os.path.join(os.getcwd(), "test_out.txt")
+
     with patch("os.makedirs") as mock_makedirs, patch("builtins.open") as mock_open:
-        result = write_local_file("/path/to/test.txt", "Hello File")
+        result = write_local_file(safe_path, "Hello File")
 
         assert "Successfully wrote" in result
         mock_makedirs.assert_called_once()
