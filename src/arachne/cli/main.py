@@ -370,7 +370,9 @@ def clean_sessions(
 
     base = default_session_dir()
     if not base.exists():
-        console.print("[dim]No sessions found to clean.[/dim]")
+        console.print(
+            "[dim]No sessions found to clean. Run a goal with [bold white]arachne run[/bold white] first.[/dim]"
+        )
         return
 
     cutoff = time.time() - (older_than_days * 86400) if older_than_days else 0
@@ -542,7 +544,7 @@ def list_graphs() -> None:
     # Cache dir logic matching core.py
     cache_dir = settings.session.directory.parent / "topology-cache"
     if not cache_dir.exists():
-        console.print("[dim]No cached graphs found.[/dim]")
+        console.print("[dim]No cached graphs found. Generate one with [bold white]arachne weave[/bold white].[/dim]")
         return
 
     table = Table(show_header=True)
@@ -677,7 +679,9 @@ def cat_session(
     if session_id == "last":
         sessions = sorted(base.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
         if not sessions:
-            console.print("[red]No sessions found.[/red]")
+            console.print(
+                "[red]No sessions found.[/red]\n[dim]Use [bold white]arachne run[/bold white] to execute a goal and create a session.[/dim]"
+            )
             return
         session_id = sessions[0].name
 
@@ -686,7 +690,9 @@ def cat_session(
     graph_path = session_path / "graph.json"
 
     if not state_path.exists():
-        console.print(f"[bold red]Error:[/bold red] No results found for session '{session_id}'.")
+        console.print(
+            f"[bold red]Error:[/bold red] No results found for session '{session_id}'.\n[dim]Use [bold white]arachne ls[/bold white] to see available sessions.[/dim]"
+        )
         return
 
     try:
@@ -712,7 +718,9 @@ def cat_session(
                     found_any = True
 
         if not found_any:
-            console.print("[yellow]No final outputs found in this session.[/yellow]")
+            console.print(
+                f"[yellow]No final outputs found in this session.[/yellow]\n[dim]Use [bold white]arachne show {session_id}[/bold white] to inspect the graph topology.[/dim]"
+            )
 
     except Exception as e:
         console.print(f"[bold red]Error loading results:[/bold red] {e}")
