@@ -370,7 +370,9 @@ def clean_sessions(
 
     base = default_session_dir()
     if not base.exists():
-        console.print("[dim]No sessions found to clean.[/dim]")
+        console.print(
+            "[dim]No sessions found to clean. Run a goal with [bold white]arachne run[/bold white] first.[/dim]"
+        )
         return
 
     cutoff = time.time() - (older_than_days * 86400) if older_than_days else 0
@@ -542,7 +544,7 @@ def list_graphs() -> None:
     # Cache dir logic matching core.py
     cache_dir = settings.session.directory.parent / "topology-cache"
     if not cache_dir.exists():
-        console.print("[dim]No cached graphs found.[/dim]")
+        console.print("[dim]No cached graphs found. Use [bold white]arachne weave[/bold white] to generate one.[/dim]")
         return
 
     table = Table(show_header=True)
@@ -674,10 +676,14 @@ def cat_session(
     from arachne.sessions import default_session_dir
 
     base = default_session_dir()
+    if not base.exists():
+        console.print("[red]No sessions found. Run a goal with [bold white]arachne run[/bold white] first.[/red]")
+        return
+
     if session_id == "last":
         sessions = sorted(base.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
         if not sessions:
-            console.print("[red]No sessions found.[/red]")
+            console.print("[red]No sessions found. Run a goal with [bold white]arachne run[/bold white] first.[/red]")
             return
         session_id = sessions[0].name
 
@@ -686,7 +692,9 @@ def cat_session(
     graph_path = session_path / "graph.json"
 
     if not state_path.exists():
-        console.print(f"[bold red]Error:[/bold red] No results found for session '{session_id}'.")
+        console.print(
+            f"[bold red]Error:[/bold red] No results found for session '{session_id}'.\n[dim]Use [bold white]arachne ls[/bold white] to see available sessions.[/dim]"
+        )
         return
 
     try:
