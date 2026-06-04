@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -285,13 +286,12 @@ class Settings(BaseSettings):
         return settings
 
 
-def get_context_limit(model_name: str, settings: Settings) -> tuple[int, str]:
-    """Auto-detect context limit from model name or litellm mapping."""
+@lru_cache(maxsize=128)
+def _get_context_limit_cached(model_name: str, llm_context_limit: int) -> tuple[int, str]:
     import os
 
     import litellm
 
-    # 0. Check for explicit environment variable override
     if os.environ.get("ARACHNE_LLM_CONTEXT_LIMIT"):
         return int(os.environ["ARACHNE_LLM_CONTEXT_LIMIT"]), "Environment Override"
 
@@ -334,35 +334,44 @@ def get_context_limit(model_name: str, settings: Settings) -> tuple[int, str]:
     if "8k" in m or "llama-3" in m:
         return 8192, "Heuristic Keyword"
 
-    return settings.llm_context_limit, "Config Default"
+    return llm_context_limit, "Config Default"
 
 
-def get_model_limits(model_name: str, settings: Settings) -> Any:
-    """Resolve full ModelLimits (context window + max output + capabilities) for a given model/backend."""
+def get_context_limit(model_name: str, settings: Settings) -> tuple[int, str]:
+    """Auto-detect context limit from model name or litellm mapping."""
+    return _get_context_limit_cached(model_name, settings.llm_context_limit)
+
+
+@lru_cache(maxsize=128)
+def _get_model_limits_cached(
+    model_name: str,
+    llm_context_limit: int,
+    llm_max_output: int,
+    llm_stability_floor: int,
+    llm_backend: str,
+    llm_base_url: str,
+) -> Any:
     from arachne.runtime.token_manager import ModelLimits, fetch_ollama_limits, fetch_openrouter_limits
 
-    # 1. Start with configured/detected context limit
-    ctx_limit, ctx_source = get_context_limit(model_name, settings)
+    ctx_limit, ctx_source = _get_context_limit_cached(model_name, llm_context_limit)
     limits = ModelLimits(
         context_window=ctx_limit,
-        max_output=settings.llm_max_output or 4096,
-        stability_floor=settings.llm_stability_floor,
+        max_output=llm_max_output or 4096,
+        stability_floor=llm_stability_floor,
         source=ctx_source,
     )
 
-    # 2. Attempt high-fidelity detection based on backend
     detected = None
-    if settings.llm_backend == "openrouter":
+    if llm_backend == "openrouter":
         detected = fetch_openrouter_limits(model_name)
         if detected:
             limits.source = "API (OpenRouter)"
-    elif settings.llm_backend == "ollama":
-        detected = fetch_ollama_limits(model_name, settings.llm_base_url)
+    elif llm_backend == "ollama":
+        detected = fetch_ollama_limits(model_name, llm_base_url)
         if detected:
             limits.source = "API (Ollama)"
 
     if detected:
-        # Patch limits with detected values if they are more specific
         limits.context_window = detected.context_window
         if detected.max_output:
             limits.max_output = detected.max_output
@@ -372,6 +381,20 @@ def get_model_limits(model_name: str, settings: Settings) -> Any:
             limits.supports_structured_output = detected.supports_structured_output
 
     return limits
+
+
+def get_model_limits(model_name: str, settings: Settings) -> Any:
+    """Resolve full ModelLimits (context window + max output + capabilities) for a given model/backend."""
+    limits = _get_model_limits_cached(
+        model_name,
+        settings.llm_context_limit,
+        settings.llm_max_output,
+        settings.llm_stability_floor,
+        settings.llm_backend,
+        settings.llm_base_url,
+    )
+    # Return a copy to prevent accidental mutation of the cached instance
+    return limits.model_copy()
 
 
 def check_deno_installed() -> bool:
