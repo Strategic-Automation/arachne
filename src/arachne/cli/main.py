@@ -370,15 +370,21 @@ def clean_sessions(
 
     base = default_session_dir()
     if not base.exists():
-        console.print("[dim]No sessions found to clean.[/dim]")
+        console.print(
+            "[dim]No sessions found to clean. Run a goal with [bold white]arachne run[/bold white] first.[/dim]"
+        )
+        return
+
+    sessions = [p for p in base.iterdir() if p.is_dir()]
+    if not sessions:
+        console.print(
+            "[dim]No sessions found to clean. Run a goal with [bold white]arachne run[/bold white] first.[/dim]"
+        )
         return
 
     cutoff = time.time() - (older_than_days * 86400) if older_than_days else 0
 
-    for session_dir in sorted(base.iterdir()):
-        if not session_dir.is_dir():
-            continue
-
+    for session_dir in sorted(sessions):
         state_path = session_dir / "state.json"
         is_failed = True
         if state_path.exists():
@@ -410,6 +416,10 @@ def ls_sessions(limit: int = typer.Option(None, "--limit", "-n", help="Limit num
         return
 
     sessions = sorted(base.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+    if not sessions:
+        console.print("[dim]No sessions found. Run a goal with [bold white]arachne run[/bold white] first.[/dim]")
+        return
+
     if limit:
         sessions = sessions[:limit]
 
@@ -541,29 +551,35 @@ def list_graphs() -> None:
     settings = Settings.from_yaml()
     # Cache dir logic matching core.py
     cache_dir = settings.session.directory.parent / "topology-cache"
-    if not cache_dir.exists():
-        console.print("[dim]No cached graphs found.[/dim]")
-        return
 
+    graphs_found = False
     table = Table(show_header=True)
     table.add_column("Graph ID (Hash)", style="cyan")
     table.add_column("Name", style="green")
     table.add_column("Objective/Goal")
     table.add_column("Nodes", justify="right")
 
-    for p in cache_dir.iterdir():
-        if p.suffix != ".json":
-            continue
-        try:
-            topo = GraphTopology.model_validate(_json.loads(p.read_text()))
-            table.add_row(
-                p.stem,
-                topo.name,
-                topo.objective[:60] + "..." if len(topo.objective) > 60 else topo.objective,
-                str(len(topo.nodes)),
-            )
-        except Exception:
-            continue
+    if cache_dir.exists():
+        for p in cache_dir.iterdir():
+            if p.suffix != ".json":
+                continue
+            try:
+                topo = GraphTopology.model_validate(_json.loads(p.read_text()))
+                table.add_row(
+                    p.stem,
+                    topo.name,
+                    topo.objective[:60] + "..." if len(topo.objective) > 60 else topo.objective,
+                    str(len(topo.nodes)),
+                )
+                graphs_found = True
+            except Exception:
+                continue
+
+    if not graphs_found:
+        console.print(
+            "[dim]No cached graphs found. Use [bold white]arachne weave[/bold white] or [bold white]arachne run[/bold white] to generate one.[/dim]"
+        )
+        return
 
     console.print(table)
     console.print("\n[dim]Use [bold white]arachne show <graph-id>[/bold white] to view details.[/dim]")
@@ -675,9 +691,12 @@ def cat_session(
 
     base = default_session_dir()
     if session_id == "last":
-        sessions = sorted(base.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+        sessions = [p for p in base.iterdir() if p.is_dir()] if base.exists() else []
+        sessions = sorted(sessions, key=lambda p: p.stat().st_mtime, reverse=True)
         if not sessions:
-            console.print("[red]No sessions found.[/red]")
+            console.print(
+                "[red]No sessions found.[/red]\n[dim]Run a goal with [bold white]arachne run[/bold white] first.[/dim]"
+            )
             return
         session_id = sessions[0].name
 
@@ -686,7 +705,9 @@ def cat_session(
     graph_path = session_path / "graph.json"
 
     if not state_path.exists():
-        console.print(f"[bold red]Error:[/bold red] No results found for session '{session_id}'.")
+        console.print(
+            f"[bold red]Error:[/bold red] No results found for session '{session_id}'.\n[dim]Use [bold white]arachne ls[/bold white] to see available sessions.[/dim]"
+        )
         return
 
     try:
@@ -832,6 +853,8 @@ def info() -> None:
         )
     )
     console.print(f"[bold]API Key:[/bold] {'[green]set[/green]' if api_key_set else '[yellow]not set[/yellow]'}")
+    if not api_key_set:
+        console.print("[dim]Use [bold white]arachne config set LLM_API_KEY <key>[/bold white] to configure it.[/dim]")
 
 
 @app.callback(invoke_without_command=True)
