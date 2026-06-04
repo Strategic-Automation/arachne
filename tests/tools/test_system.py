@@ -71,7 +71,7 @@ def test_get_current_time_invalid_tz():
 def test_read_file_success():
     """Test reading a file with truncation at 2000 chars."""
     mock_content = "File content here. " * 200
-    with patch("builtins.open") as mock_open:
+    with patch("builtins.open") as mock_open, patch("pathlib.Path.is_relative_to", return_value=True):
         mock_open.return_value.__enter__.return_value.read.return_value = mock_content
 
         result = read_file("/absolute/path/test.txt")
@@ -80,16 +80,37 @@ def test_read_file_success():
 
 def test_read_file_error():
     """Test reading a file that doesn't exist."""
-    with patch("builtins.open", side_effect=FileNotFoundError("No such file")):
+    with (
+        patch("builtins.open", side_effect=FileNotFoundError("No such file")),
+        patch("pathlib.Path.is_relative_to", return_value=True),
+    ):
         result = read_file("/missing.txt")
         assert "Error reading" in result
 
 
+def test_read_file_path_traversal():
+    """Test that reading a file outside allowed boundaries is blocked."""
+    with patch("pathlib.Path.is_relative_to", return_value=False):
+        result = read_file("../../../etc/passwd")
+        assert "Path traversal detected" in result
+
+
 def test_write_file_success():
     """Test writing a file creates directories and writes content."""
-    with patch("os.makedirs") as mock_makedirs, patch("builtins.open") as mock_open:
+    with (
+        patch("os.makedirs") as mock_makedirs,
+        patch("builtins.open") as mock_open,
+        patch("pathlib.Path.is_relative_to", return_value=True),
+    ):
         result = write_local_file("/path/to/test.txt", "Hello File")
 
         assert "Successfully wrote" in result
         mock_makedirs.assert_called_once()
         mock_open.assert_called_once()
+
+
+def test_write_file_path_traversal():
+    """Test that writing a file outside allowed boundaries is blocked."""
+    with patch("pathlib.Path.is_relative_to", return_value=False):
+        result = write_local_file("../../../tmp/hacked.txt", "Hello")
+        assert "Path traversal detected" in result
