@@ -1,0 +1,5 @@
+
+## 2024-06-05 - Fix Path Traversal in System File Operations
+**Vulnerability:** The `read_file` and `write_local_file` tools in `src/arachne/tools/system/` failed to prevent path traversal. They checked `is_absolute()` to try routing relative paths to a session output directory and used `os.path.realpath` before opening, but didn't verify that the fully resolved path resided inside an allowed boundary (like `Path.cwd()` or the session outputs directory). This allowed an attacker to supply absolute paths like `/etc/passwd` or relative paths like `../../../../../../etc/passwd` to read/write arbitrary files on the filesystem.
+**Learning:** Checking whether a path `is_absolute` or using `os.path.realpath` is insufficient to prevent path traversal because paths containing `../` can still escape intended directories after resolution.
+**Prevention:** To prevent path traversal, always call `resolve()` on the target path, and use `.is_relative_to()` to strictly enforce that the fully resolved path is a sub-path of fully resolved, allowed boundary directories (e.g., `Path.cwd().resolve()`).
