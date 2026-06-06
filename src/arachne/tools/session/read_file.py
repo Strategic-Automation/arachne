@@ -9,6 +9,10 @@ def read_session_file(relative_path: str) -> str:
     if not sess_path:
         return "No active session."
     p = sess_path / relative_path
+
+    if not p.resolve().is_relative_to(sess_path.resolve()):
+        return f"Error reading {relative_path}: Access denied (path traversal)"
+
     if not p.exists():
         return f"File not found: {relative_path}"
     try:

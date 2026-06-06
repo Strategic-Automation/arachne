@@ -15,6 +15,22 @@ def read_file(path: str) -> str:
             p = sess_path / "outputs" / p
 
     safe_path = os.path.realpath(str(p))
+    resolved_path = Path(safe_path).resolve()
+    cwd_resolved = Path.cwd().resolve()
+
+    is_valid = False
+    if resolved_path.is_relative_to(cwd_resolved):
+        is_valid = True
+    else:
+        sess_path = active_session_path.get()
+        if sess_path:
+            sess_outputs_resolved = (sess_path / "outputs").resolve()
+            if resolved_path.is_relative_to(sess_outputs_resolved):
+                is_valid = True
+
+    if not is_valid:
+        return f"Error reading {path}: Access denied (path traversal)"
+
     try:
         with open(safe_path, errors="replace") as f:
             return f.read()[:2000]
