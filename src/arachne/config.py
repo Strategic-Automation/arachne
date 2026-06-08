@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import logging
 from pathlib import Path
 from typing import Any
@@ -285,8 +286,8 @@ class Settings(BaseSettings):
         return settings
 
 
-def get_context_limit(model_name: str, settings: Settings) -> tuple[int, str]:
-    """Auto-detect context limit from model name or litellm mapping."""
+@functools.lru_cache(maxsize=128)
+def _cached_get_context_limit(model_name: str, default_context_limit: int) -> tuple[int, str]:
     import os
 
     import litellm
@@ -334,30 +335,43 @@ def get_context_limit(model_name: str, settings: Settings) -> tuple[int, str]:
     if "8k" in m or "llama-3" in m:
         return 8192, "Heuristic Keyword"
 
-    return settings.llm_context_limit, "Config Default"
+    return default_context_limit, "Config Default"
 
 
-def get_model_limits(model_name: str, settings: Settings) -> Any:
-    """Resolve full ModelLimits (context window + max output + capabilities) for a given model/backend."""
+def get_context_limit(model_name: str, settings: Settings) -> tuple[int, str]:
+    """Auto-detect context limit from model name or litellm mapping."""
+    return _cached_get_context_limit(model_name, settings.llm_context_limit)
+
+
+@functools.lru_cache(maxsize=128)
+def _cached_get_model_limits(
+    model_name: str,
+    llm_backend: str,
+    llm_base_url: str,
+    llm_max_output: int | None,
+    llm_stability_floor: int,
+    llm_context_limit: int,
+) -> Any:
+    """Inner cached logic for resolving full ModelLimits."""
     from arachne.runtime.token_manager import ModelLimits, fetch_ollama_limits, fetch_openrouter_limits
 
     # 1. Start with configured/detected context limit
-    ctx_limit, ctx_source = get_context_limit(model_name, settings)
+    ctx_limit, ctx_source = _cached_get_context_limit(model_name, llm_context_limit)
     limits = ModelLimits(
         context_window=ctx_limit,
-        max_output=settings.llm_max_output or 4096,
-        stability_floor=settings.llm_stability_floor,
+        max_output=llm_max_output or 4096,
+        stability_floor=llm_stability_floor,
         source=ctx_source,
     )
 
     # 2. Attempt high-fidelity detection based on backend
     detected = None
-    if settings.llm_backend == "openrouter":
+    if llm_backend == "openrouter":
         detected = fetch_openrouter_limits(model_name)
         if detected:
             limits.source = "API (OpenRouter)"
-    elif settings.llm_backend == "ollama":
-        detected = fetch_ollama_limits(model_name, settings.llm_base_url)
+    elif llm_backend == "ollama":
+        detected = fetch_ollama_limits(model_name, llm_base_url)
         if detected:
             limits.source = "API (Ollama)"
 
@@ -372,6 +386,25 @@ def get_model_limits(model_name: str, settings: Settings) -> Any:
             limits.supports_structured_output = detected.supports_structured_output
 
     return limits
+
+
+def get_model_limits(model_name: str, settings: Settings) -> Any:
+    """Resolve full ModelLimits (context window + max output + capabilities) for a given model/backend.
+
+    ⚡ Bolt: Cached via _cached_get_model_limits using primitive properties instead of the entire Settings
+    object, avoiding repeated synchronous network requests (e.g. OpenRouter/Ollama API hits) and
+    costly runtime imports during graph execution when detecting model capabilities repeatedly.
+    """
+    cached_limits = _cached_get_model_limits(
+        model_name,
+        settings.llm_backend,
+        settings.llm_base_url,
+        settings.llm_max_output,
+        settings.llm_stability_floor,
+        settings.llm_context_limit,
+    )
+    # Always return a copy since it's a mutable Pydantic model
+    return cached_limits.model_copy()
 
 
 def check_deno_installed() -> bool:
