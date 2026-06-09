@@ -675,9 +675,17 @@ def cat_session(
 
     base = default_session_dir()
     if session_id == "last":
+        if not base.exists():
+            console.print(
+                "[red]No sessions found.[/red]\n[dim]Run a goal with [bold white]arachne run[/bold white] first.[/dim]"
+            )
+            return
+
         sessions = sorted(base.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
         if not sessions:
-            console.print("[red]No sessions found.[/red]")
+            console.print(
+                "[red]No sessions found.[/red]\n[dim]Run a goal with [bold white]arachne run[/bold white] first.[/dim]"
+            )
             return
         session_id = sessions[0].name
 

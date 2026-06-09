@@ -5,3 +5,6 @@
 ## 2026-05-25 - Actionable Error Messages
 **Learning:** Providing actionable guidance in error messages and empty states significantly reduces user friction. When a user queries a non-existent ID, giving them the exact command to find the correct ID is an immediate UX win.
 **Action:** Always append hints to "not found" or "empty" states that point the user to the correct command or workflow.
+## 2026-05-25 - Actionable Error Messages for Empty States
+**Learning:** Empty states in CLIs (like "No sessions found") can be frustrating dead-ends. Providing actionable guidance using existing console styles (e.g., `Run a goal with arachne run first.`) transforms an error into a helpful workflow suggestion without needing new dependencies.
+**Action:** Always append hints to "not found" or "empty" states that point the user to the correct command or workflow, keeping changes under 50 lines.
