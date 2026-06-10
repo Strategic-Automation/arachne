@@ -350,7 +350,9 @@ def delete_session(session_id: str) -> None:
 
     session_path = default_session_dir() / session_id
     if not session_path.exists():
-        console.print(f"[red]Session '{session_id}' not found.[/red]")
+        console.print(
+            f"[red]Session '{session_id}' not found.[/red]\n[dim]Use [bold white]arachne ls[/bold white] to see available sessions.[/dim]"
+        )
         return
 
     if typer.confirm(f"Are you sure you want to delete session '{session_id}'?"):
@@ -368,11 +370,12 @@ def clean_sessions(
 
     base = default_session_dir()
     if not base.exists():
-        console.print("[dim]No sessions found.[/dim]")
+        console.print("[dim]No sessions found to clean.[/dim]")
         return
 
     cutoff = time.time() - (older_than_days * 86400) if older_than_days else 0
 
+    deleted_count = 0
     for session_dir in sorted(base.iterdir()):
         if not session_dir.is_dir():
             continue
@@ -393,8 +396,12 @@ def clean_sessions(
         if (failed_only and is_failed) or (older_than_days and too_old):
             console.print(f"  Deleting [yellow]{session_dir.name}[/yellow]...")
             shutil.rmtree(session_dir)
+            deleted_count += 1
 
-    console.print("[green]Cleanup complete.[/green]")
+    if deleted_count > 0:
+        console.print(f"[green]Cleanup complete. Deleted {deleted_count} session(s).[/green]")
+    else:
+        console.print("[dim]No matching sessions found to clean.[/dim]")
 
 
 @app.command("ls")
@@ -404,10 +411,14 @@ def ls_sessions(limit: int = typer.Option(None, "--limit", "-n", help="Limit num
 
     base = default_session_dir()
     if not base.exists():
-        console.print("[dim]No sessions found.[/dim]")
+        console.print("[dim]No sessions found. Run a goal with [bold white]arachne run[/bold white] first.[/dim]")
         return
 
-    sessions = sorted(base.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+    sessions = sorted([p for p in base.iterdir() if p.is_dir()], key=lambda p: p.stat().st_mtime, reverse=True)
+    if not sessions:
+        console.print("[dim]No sessions found. Run a goal with [bold white]arachne run[/bold white] first.[/dim]")
+        return
+
     if limit:
         sessions = sessions[:limit]
 
@@ -482,7 +493,9 @@ def resume(
 
     base = default_session_dir() / session_id
     if not base.exists():
-        console.print(f"[bold red]Error:[/bold red] Session '{session_id}' not found.")
+        console.print(
+            f"[bold red]Error:[/bold red] Session '{session_id}' not found.\n[dim]Use [bold white]arachne ls[/bold white] to see available sessions.[/dim]"
+        )
         sys.exit(1)
 
     graph_path = base / "graph.json"
@@ -537,7 +550,7 @@ def list_graphs() -> None:
     settings = Settings.from_yaml()
     # Cache dir logic matching core.py
     cache_dir = settings.session.directory.parent / "topology-cache"
-    if not cache_dir.exists():
+    if not cache_dir.exists() or not any(p.suffix == ".json" for p in cache_dir.iterdir()):
         console.print("[dim]No cached graphs found.[/dim]")
         return
 
@@ -586,7 +599,9 @@ def show(id_or_sid: str = typer.Argument(..., help="Session ID (run_...) or Grap
             path = cache_path
 
     if not path or not path.exists():
-        console.print(f"[bold red]Error:[/bold red] '{id_or_sid}' not found as session or cached graph.")
+        console.print(
+            f"[bold red]Error:[/bold red] '{id_or_sid}' not found as session or cached graph.\n[dim]Use [bold white]arachne ls[/bold white] or [bold white]arachne graphs[/bold white] to see available IDs.[/dim]"
+        )
         sys.exit(1)
 
     try:
@@ -630,7 +645,9 @@ def rerun(
                 input_goal = topo_data.get("objective")
 
     if not topology_path or not topology_path.exists():
-        console.print(f"[bold red]Error:[/bold red] Could not find graph for '{id_or_sid}'.")
+        console.print(
+            f"[bold red]Error:[/bold red] Could not find graph for '{id_or_sid}'.\n[dim]Use [bold white]arachne ls[/bold white] or [bold white]arachne graphs[/bold white] to see available IDs.[/dim]"
+        )
         sys.exit(1)
 
     if not input_goal:
@@ -667,9 +684,17 @@ def cat_session(
 
     base = default_session_dir()
     if session_id == "last":
+        if not base.exists():
+            console.print(
+                "[red]No sessions found.[/red]\n[dim]Run a goal with [bold white]arachne run[/bold white] first.[/dim]"
+            )
+            return
+
         sessions = sorted(base.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
         if not sessions:
-            console.print("[red]No sessions found.[/red]")
+            console.print(
+                "[red]No sessions found.[/red]\n[dim]Run a goal with [bold white]arachne run[/bold white] first.[/dim]"
+            )
             return
         session_id = sessions[0].name
 
@@ -832,7 +857,10 @@ def callback(
 ) -> None:
     """Arachne -- Runtime harness for production AI agents."""
     _ensure_logging()
-    show_banner()
+
+    if ctx.invoked_subcommand is None or list_tools:
+        show_banner()
+
     if list_tools:
         names = get_tool_names()
         table = Table(title="[bold]Available Tools[/bold]", box=None)
@@ -842,6 +870,7 @@ def callback(
             table.add_row(name, "Built-in" if is_tool_builtin(name) else "Custom")
         console.print(table)
         raise typer.Exit()
+
     if ctx.invoked_subcommand is None:
         typer.echo(ctx.get_help())
 
