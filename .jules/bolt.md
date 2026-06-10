@@ -4,3 +4,6 @@
 ## 2025-06-03 - Prevent mutating cached Pydantic Models
 **Learning:** Pydantic models are mutable in Python. When decorating a function returning a Pydantic model with `@lru_cache`, you must never expose the raw cached instance directly if downstream operations mutate it, or the cache will be corrupted permanently.
 **Action:** Rename the `@lru_cache` method to a private variant (e.g. `_fetch_limits_cached`) and create a public wrapper method that returns `.model_copy()` of the cached instance.
+## 2025-06-10 - Asynchronous tools with synchronous libraries
+**Learning:** Using synchronous libraries like `ddgs` within an `async` function blocks the asyncio event loop during network requests, neutralizing the concurrency benefits of async execution.
+**Action:** When a synchronous function or library must be called inside an asynchronous block (such as an `async def` Tool method), wrap the blocking synchronous call with `await asyncio.to_thread(func)` to ensure the event loop is not blocked, resulting in significantly faster parallel executions.

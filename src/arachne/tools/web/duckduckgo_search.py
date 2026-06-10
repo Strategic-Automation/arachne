@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import dspy
 from pydantic import BaseModel, Field
 
@@ -30,7 +32,8 @@ async def duckduckgo_search_async(query: str, max_results: int = 5, **_kwargs) -
     """
     try:
         ddgs = DDGS()
-        search_results = list(ddgs.text(query, max_results=max_results))
+        # Execute synchronous search in a thread pool to avoid blocking the asyncio event loop
+        search_results = await asyncio.to_thread(lambda: list(ddgs.text(query, max_results=max_results)))
     except Exception as e:
         return f"DuckDuckGo search failed: {e}"
 
