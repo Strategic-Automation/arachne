@@ -1,0 +1,9 @@
+## 2025-05-24 - Cache repeated API calls for Model Limits during execution
+**Learning:** In a graph execution environment where nodes are dynamically instantiated and run, shared setup tasks like detecting model capabilities can lead to a storm of synchronous network requests. `NodeExecutor` resolves limits using `get_model_limits` per-node execution, which queries OpenRouter or Ollama via HTTP to check capabilities. Because these limits don't change within a single session, this causes an unnecessary ~1s delay *per node*.
+**Action:** When inspecting execution or compilation loops, always check if invariant external metadata (like API rate limits, model token windows, or capabilities) is being fetched dynamically. Apply in-memory caching like `functools.lru_cache` to short-circuit these redundant synchronous I/O operations and significantly speed up parallel execution and node bootstrapping.
+## 2025-06-03 - Prevent mutating cached Pydantic Models
+**Learning:** Pydantic models are mutable in Python. When decorating a function returning a Pydantic model with `@lru_cache`, you must never expose the raw cached instance directly if downstream operations mutate it, or the cache will be corrupted permanently.
+**Action:** Rename the `@lru_cache` method to a private variant (e.g. `_fetch_limits_cached`) and create a public wrapper method that returns `.model_copy()` of the cached instance.
+## 2025-06-10 - Asynchronous tools with synchronous libraries
+**Learning:** Using synchronous libraries like `ddgs` within an `async` function blocks the asyncio event loop during network requests, neutralizing the concurrency benefits of async execution.
+**Action:** When a synchronous function or library must be called inside an asynchronous block (such as an `async def` Tool method), wrap the blocking synchronous call with `await asyncio.to_thread(func)` to ensure the event loop is not blocked, resulting in significantly faster parallel executions.

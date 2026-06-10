@@ -1,6 +1,7 @@
 """Token counting and trajectory management logic."""
 
 import logging
+from functools import lru_cache
 from typing import Any
 
 import litellm
@@ -45,7 +46,10 @@ def count_tokens(text: str, model: str) -> int:
         return len(text) // 4
 
 
-def fetch_openrouter_limits(model_id: str) -> ModelLimits | None:
+# ⚡ Bolt: Cache external API calls to avoid repeated synchronous requests during graph execution.
+# This prevents a 1-second delay per node when checking limits for identical models.
+@lru_cache(maxsize=128)
+def _fetch_openrouter_limits_cached(model_id: str) -> ModelLimits | None:
     """Fetch runtime limits directly from OpenRouter API."""
     try:
         resp = requests.get("https://openrouter.ai/api/v1/models", timeout=10)
@@ -80,7 +84,16 @@ def fetch_openrouter_limits(model_id: str) -> ModelLimits | None:
     return None
 
 
-def fetch_ollama_limits(model_id: str, base_url: str) -> ModelLimits | None:
+def fetch_openrouter_limits(model_id: str) -> ModelLimits | None:
+    """Wrapper to prevent downstream mutation of the cached Pydantic model."""
+    result = _fetch_openrouter_limits_cached(model_id)
+    return result.model_copy() if result is not None else None
+
+
+# ⚡ Bolt: Cache external API calls to avoid repeated synchronous requests during graph execution.
+# This prevents a 1-second delay per node when checking limits for identical models.
+@lru_cache(maxsize=128)
+def _fetch_ollama_limits_cached(model_id: str, base_url: str) -> ModelLimits | None:
     """Fetch runtime limits from Ollama's /api/show endpoint."""
     try:
         # Strip provider prefix if present
@@ -132,6 +145,12 @@ def fetch_ollama_limits(model_id: str, base_url: str) -> ModelLimits | None:
     except Exception as e:
         logger.debug(f"Ollama limits fetch failed: {e}")
     return None
+
+
+def fetch_ollama_limits(model_id: str, base_url: str) -> ModelLimits | None:
+    """Wrapper to prevent downstream mutation of the cached Pydantic model."""
+    result = _fetch_ollama_limits_cached(model_id, base_url)
+    return result.model_copy() if result is not None else None
 
 
 def compress_trajectory(

@@ -256,9 +256,11 @@ def review_graph(topology: GraphTopology, console: Console) -> dict | None:
         choices=["Execute as-is", "Edit and re-weave", "Cancel"],
     ).ask()
 
-    if choice == "Cancel":
+    if choice == "Cancel" or choice is None:
         return None
     if choice == "Edit and re-weave":
         mods = questionary.text("What changes would you like to make?", default="Make it more efficient").ask()
+        if mods is None:
+            return None
         return {"re_weave": True, "modifications": mods}
     return {"re_weave": False}

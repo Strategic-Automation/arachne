@@ -11,6 +11,7 @@ def _get_env_key() -> str | None:
     """Read OpenRouter key from .env."""
     try:
         from dotenv import dotenv_values
+
         vals = dotenv_values(".env")
         return vals.get("OPENROUTER_API_KEY") or vals.get("LLM_API_KEY")
     except Exception:
@@ -20,6 +21,7 @@ def _get_env_key() -> str | None:
 def _ollama_available() -> bool:
     """Check if Ollama is running and qwen3.5:2b is available."""
     import subprocess
+
     try:
         r = subprocess.run(["ollama", "list"], capture_output=True, text=True, timeout=5)
         return "qwen3.5:2b" in r.stdout
@@ -79,11 +81,20 @@ def test_ollama_arachne_weave():
         topology.topological_waves()
     except Exception as e:
         msg = str(e).lower()
-        if any(kw in msg for kw in (
-            "ollama_chat", "provider not supported", "module 'litellm'",
-            "cost_per_token", "no attribute", "has no attribute",
-            "404", "connection", "api/tags",
-        )):
+        if any(
+            kw in msg
+            for kw in (
+                "ollama_chat",
+                "provider not supported",
+                "module 'litellm'",
+                "cost_per_token",
+                "no attribute",
+                "has no attribute",
+                "404",
+                "connection",
+                "api/tags",
+            )
+        ):
             pytest.skip(f"Ollama Arachne integration not available: {e}")
         raise
     finally:
@@ -115,8 +126,7 @@ def test_openrouter_basic_completion():
         assert "hello" in str(result).lower()
     except Exception as e:
         msg = str(e).lower()
-        if any(kw in msg for kw in ("402", "429", "rate", "insufficient",
-                                      "developer instruction", "not enabled")):
+        if any(kw in msg for kw in ("402", "429", "rate", "insufficient", "developer instruction", "not enabled")):
             pytest.skip(f"OpenRouter unavailable: {e}")
         raise
     finally:
@@ -152,10 +162,17 @@ def test_openrouter_arachne_weave():
         topology.topological_waves()
     except Exception as e:
         msg = str(e).lower()
-        if any(kw in msg for kw in (
-            "402", "429", "rate", "insufficient",
-            "developer instruction", "not enabled",
-        )):
+        if any(
+            kw in msg
+            for kw in (
+                "402",
+                "429",
+                "rate",
+                "insufficient",
+                "developer instruction",
+                "not enabled",
+            )
+        ):
             pytest.skip(f"OpenRouter unavailable: {e}")
         raise
     finally:
