@@ -1,6 +1,7 @@
 """Token counting and trajectory management logic."""
 
 import logging
+from functools import lru_cache
 from typing import Any
 
 import litellm
@@ -45,6 +46,9 @@ def count_tokens(text: str, model: str) -> int:
         return len(text) // 4
 
 
+# ⚡ Bolt: Cache external API calls to avoid repeated synchronous requests during graph execution.
+# This prevents a 1-second delay per node when checking limits for identical models.
+@lru_cache(maxsize=128)
 def fetch_openrouter_limits(model_id: str) -> ModelLimits | None:
     """Fetch runtime limits directly from OpenRouter API."""
     try:
@@ -80,6 +84,9 @@ def fetch_openrouter_limits(model_id: str) -> ModelLimits | None:
     return None
 
 
+# ⚡ Bolt: Cache external API calls to avoid repeated synchronous requests during graph execution.
+# This prevents a 1-second delay per node when checking limits for identical models.
+@lru_cache(maxsize=128)
 def fetch_ollama_limits(model_id: str, base_url: str) -> ModelLimits | None:
     """Fetch runtime limits from Ollama's /api/show endpoint."""
     try:
