@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.30,<1.31"]
 build-backend = "hatchling.build"
 
 [project]
@@ -48,7 +48,6 @@ dependencies = [
     "googlesearch-python>=1.3.0",
     "arxiv>=3.0.0",
     "wikipedia-api>=0.10.0",
-    "langchain-openai>=1.2.0",
 ]
 
 [project.urls]
@@ -68,6 +67,9 @@ dev = [
 
 [project.scripts]
 arachne = "arachne.cli.main:main"
+
+[tool.hatch.build.targets.wheel]
+dev-mode-dirs = ["src"]
 
 # =====================================================
 # Ruff -- linting and formatting
