@@ -78,11 +78,11 @@ def compile_weaver(
     Returns:
         Path to the output directory.
     """
-    from arachne.config import Settings, configure_dspy
+    from arachne.config import configure_dspy, get_settings
     from arachne.topologies.weaver import GraphWeaver
 
     if settings is None:
-        settings = Settings.from_yaml()
+        settings = get_settings()
 
     # Ensure DSPy is configured
     configure_dspy(settings)

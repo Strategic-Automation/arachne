@@ -8,7 +8,7 @@ import dspy
 import httpx
 from pydantic import BaseModel, Field
 
-from arachne.config import Settings
+from arachne.config import get_settings
 
 
 class JinaSearchInput(BaseModel):
@@ -29,7 +29,7 @@ async def jina_search_async(query: str, max_results: int = 3, **_kwargs) -> str:
     Supports comma-separated queries to run multiple searches in parallel
     (e.g. ``"CEO name, company history, pricing"``).
     """
-    settings = Settings()
+    settings = get_settings()
     api_key = settings.jina_api_key.get_secret_value() if settings.jina_api_key else None
 
     queries = [q.strip() for q in query.split(",") if q.strip()] or [query]

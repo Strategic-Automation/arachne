@@ -286,6 +286,21 @@ class Settings(BaseSettings):
         return settings
 
 
+@functools.lru_cache(maxsize=1)
+def _get_settings_cached() -> Settings:
+    """Cached internal implementation to fetch settings."""
+    return Settings.from_yaml()
+
+
+def get_settings() -> Settings:
+    """Get the global application settings.
+
+    ⚡ Bolt Optimization: Uses an LRU cache internally to avoid redundant
+    settings instantiation and YAML loading across the application.
+    """
+    return _get_settings_cached().model_copy()
+
+
 def get_context_limit(model_name: str, settings: Settings) -> tuple[int, str]:
     """Auto-detect context limit from model name or litellm mapping."""
     import os
