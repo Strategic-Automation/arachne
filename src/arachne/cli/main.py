@@ -370,7 +370,9 @@ def clean_sessions(
 
     base = default_session_dir()
     if not base.exists():
-        console.print("[dim]No sessions found to clean.[/dim]")
+        console.print(
+            "[dim]No sessions found to clean. Run a goal with [bold white]arachne run[/bold white] first.[/dim]"
+        )
         return
 
     cutoff = time.time() - (older_than_days * 86400) if older_than_days else 0
@@ -551,7 +553,9 @@ def list_graphs() -> None:
     # Cache dir logic matching core.py
     cache_dir = settings.session.directory.parent / "topology-cache"
     if not cache_dir.exists() or not any(p.suffix == ".json" for p in cache_dir.iterdir()):
-        console.print("[dim]No cached graphs found.[/dim]")
+        console.print(
+            "[dim]No cached graphs found. Generate one with [bold white]arachne weave[/bold white] or [bold white]arachne run[/bold white].[/dim]"
+        )
         return
 
     table = Table(show_header=True)
