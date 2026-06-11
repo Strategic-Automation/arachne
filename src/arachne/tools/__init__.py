@@ -184,9 +184,9 @@ def list_tools(settings: Settings | None = None) -> list[str]:
         settings: Optional Settings instance to check tool availability.
     """
     if settings is None:
-        from arachne.config import Settings as ConfigSettings
+        from arachne.config import get_settings
 
-        settings = ConfigSettings()
+        settings = get_settings()
 
     names = set()
     for name in _BUILTIN_TOOLS:

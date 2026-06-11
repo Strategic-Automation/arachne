@@ -7,3 +7,6 @@
 ## 2025-06-10 - Asynchronous tools with synchronous libraries
 **Learning:** Using synchronous libraries like `ddgs` within an `async` function blocks the asyncio event loop during network requests, neutralizing the concurrency benefits of async execution.
 **Action:** When a synchronous function or library must be called inside an asynchronous block (such as an `async def` Tool method), wrap the blocking synchronous call with `await asyncio.to_thread(func)` to ensure the event loop is not blocked, resulting in significantly faster parallel executions.
+## 2025-06-11 - Centralized configuration caching
+**Learning:** Pydantic models (like `Settings`) can trigger disk I/O (e.g. `Settings.from_yaml()`) and validation upon instantiation. Frequent `Settings()` calls across modules lead to redundant I/O and slower execution.
+**Action:** When working with Pydantic configurations loaded from disk, create a single cached getter (e.g., `@functools.lru_cache(maxsize=1) def _get_settings_cached() -> Settings`) and expose a wrapper (`get_settings()`) that safely returns `.model_copy()` to avoid shared mutable state issues while drastically reducing redundant instantiation overhead.

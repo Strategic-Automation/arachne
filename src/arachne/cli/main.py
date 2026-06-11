@@ -16,7 +16,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from arachne.cli.display import display_results, display_topology, show_banner
-from arachne.config import Settings, configure_dspy
+from arachne.config import Settings, configure_dspy, get_settings
 from arachne.core import Arachne
 from arachne.tools import is_builtin as is_tool_builtin
 from arachne.tools import list_tools as get_tool_names
@@ -511,7 +511,7 @@ def resume(
 
     display_topology(topology, title=f"[bold]Resuming Session: {session_id}[/bold]")
 
-    settings = Settings.from_yaml()
+    settings = get_settings()
     _ensure_logging()
     configure_dspy(settings)
     from arachne.ports import RichTerminalOutput
@@ -547,7 +547,7 @@ def resume(
 @app.command("graphs")
 def list_graphs() -> None:
     """List all cached topologies that have been woven and validated."""
-    settings = Settings.from_yaml()
+    settings = get_settings()
     # Cache dir logic matching core.py
     cache_dir = settings.session.directory.parent / "topology-cache"
     if not cache_dir.exists() or not any(p.suffix == ".json" for p in cache_dir.iterdir()):
@@ -583,7 +583,7 @@ def show(id_or_sid: str = typer.Argument(..., help="Session ID (run_...) or Grap
     """Visualize a graph topology from a session or the cache."""
     from arachne.sessions import default_session_dir
 
-    settings = Settings.from_yaml()
+    settings = get_settings()
     cache_dir = settings.session.directory.parent / "topology-cache"
 
     path = None
@@ -621,7 +621,7 @@ def rerun(
     """Execute a fresh run using a specific graph (from session or cache)."""
     from arachne.sessions import default_session_dir
 
-    settings = Settings.from_yaml()
+    settings = get_settings()
     cache_dir = settings.session.directory.parent / "topology-cache"
 
     topology_path = None
@@ -742,7 +742,7 @@ def config_cmd(
     value: str | None = typer.Argument(None),
 ) -> None:
     """Manage calculation settings and .env variables."""
-    settings = Settings.from_yaml()
+    settings = get_settings()
 
     if action == "list":
         table = Table(title="[bold]Arachne Configuration[/bold]")
@@ -813,7 +813,7 @@ def compile_weaver(
     )
 
     _ensure_logging()
-    settings = Settings.from_yaml()
+    settings = get_settings()
 
     console.print("[bold cyan]Compiling GraphWeaver sub-predictors with BootstrapFewShot...[/bold cyan]")
     console.print("[dim]  • weave (topology generation)[/dim]")
@@ -836,7 +836,7 @@ def compile_weaver(
 @app.command()
 def info() -> None:
     """Show Arachne configuration and active LLM."""
-    settings = Settings.from_yaml()
+    settings = get_settings()
     api_key_set = bool(settings.llm_api_key.get_secret_value())
     console.print(
         Panel(
