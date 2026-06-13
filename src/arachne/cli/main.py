@@ -502,7 +502,9 @@ def resume(
 
     graph_path = base / "graph.json"
     if not graph_path.exists():
-        console.print("[bold red]Error:[/bold red] No 'graph.json' found in session.")
+        console.print(
+            "[bold red]Error:[/bold red] No 'graph.json' found in session.\n[dim]Ensure the session ID is correct or weave a new graph.[/dim]"
+        )
         sys.exit(1)
 
     try:
@@ -707,7 +709,9 @@ def cat_session(
     graph_path = session_path / "graph.json"
 
     if not state_path.exists():
-        console.print(f"[bold red]Error:[/bold red] No results found for session '{session_id}'.")
+        console.print(
+            f"[bold red]Error:[/bold red] No results found for session '{session_id}'.\n[dim]Run a goal with [bold white]arachne run[/bold white] first.[/dim]"
+        )
         return
 
     try:
