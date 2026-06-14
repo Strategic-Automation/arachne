@@ -27,7 +27,7 @@ def list_checkpoints(session_id: str) -> str:
     ckpt_dir = _SESSIONS_DIR / session_id / "checkpoints"
     if not ckpt_dir.exists():
         return f"No checkpoints found for session '{session_id}'"
-    checkpoints = [f.stem for f in ckpt_dir.iterdir() if f.suffix == ".json"]
+    checkpoints = [f.stem for f in ckpt_dir.iterdir() if f.is_file() and f.suffix == ".json"]
     if not checkpoints:
         return f"No checkpoints found for session '{session_id}'"
     return f"Checkpoints for {session_id}: {', '.join(checkpoints)}"

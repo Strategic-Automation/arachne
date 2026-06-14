@@ -74,7 +74,7 @@ def get_session_status(session_id: str) -> str:
     if logs_dir.exists():
         result["logs"] = {}
         for log_file in logs_dir.iterdir():
-            if log_file.suffix == ".log":
+            if log_file.is_file() and log_file.suffix == ".log":
                 result["logs"][log_file.stem] = log_file.read_text()
 
     return json.dumps(result, indent=2)
