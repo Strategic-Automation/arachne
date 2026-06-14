@@ -1,3 +1,5 @@
+import asyncio
+
 import dspy
 from pydantic import BaseModel, Field
 from rich.console import Console
@@ -25,10 +27,14 @@ async def wikipedia_search_async(query: str, language: str = "en", **_kwargs) ->
         language=language,
     )
 
-    page = wiki.page(query)
-    if page.exists():
+    def _fetch():
+        p = wiki.page(query)
+        return {"exists": p.exists(), "title": p.title, "summary": p.summary[:4000], "fullurl": p.fullurl}
+
+    page_data = await asyncio.to_thread(_fetch)
+    if page_data["exists"]:
         # Return summary and link
-        result = f"## {page.title}\n{page.summary[:4000]}\n\n**Source**: {page.fullurl}"
+        result = f"## {page_data['title']}\n{page_data['summary']}\n\n**Source**: {page_data['fullurl']}"
     else:
         # If exact match fails, try a search (though wikipedia-api is primarily for retrieval)
         # For now, if it doesn't exist, we'll return a failure

@@ -1,3 +1,5 @@
+import asyncio
+
 import arxiv
 import dspy
 from pydantic import BaseModel, Field
@@ -24,7 +26,9 @@ async def arxiv_search_async(query: str, max_results: int = 3, **_kwargs) -> str
     search_obj = arxiv.Search(query=query, max_results=max_results, sort_by=arxiv.SortCriterion.Relevance)
 
     results = []
-    for i, res in enumerate(client.results(search_obj), 1):
+    # Execute synchronous search in a thread pool to avoid blocking the asyncio event loop
+    search_results = await asyncio.to_thread(lambda: list(client.results(search_obj)))
+    for i, res in enumerate(search_results, 1):
         summary = res.summary.replace("\n", " ")
         results.append(
             f"### {i}. {res.title}\n"

@@ -7,3 +7,6 @@
 ## 2025-06-10 - Asynchronous tools with synchronous libraries
 **Learning:** Using synchronous libraries like `ddgs` within an `async` function blocks the asyncio event loop during network requests, neutralizing the concurrency benefits of async execution.
 **Action:** When a synchronous function or library must be called inside an asynchronous block (such as an `async def` Tool method), wrap the blocking synchronous call with `await asyncio.to_thread(func)` to ensure the event loop is not blocked, resulting in significantly faster parallel executions.
+## 2025-06-15 - Offload synchronous network libraries to thread pool in async tools
+**Learning:** Tools like `wikipedia_search_async` and `arxiv_search_async` were executing blocking network calls via synchronous third-party libraries (`wikipediaapi.Wikipedia().page()` and `arxiv.Client().results()`). Since these are `async def` methods meant to run in an `asyncio` event loop alongside parallel executions, the synchronous network calls cause the entire event loop to halt, blocking all other tasks.
+**Action:** In asynchronous Python code (e.g., `async def` methods like Arachne tools), wrap synchronous third-party library calls that perform network or I/O requests with `await asyncio.to_thread()` to offload them to a thread pool and prevent blocking the `asyncio` event loop.
