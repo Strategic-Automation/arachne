@@ -5,7 +5,7 @@ addressing the root cause of the 'no script' bug where output field
 names were not propagated into all_results for lookup.
 """
 
-from arachne.config import Settings
+from arachne.config import get_settings
 from arachne.topologies.schema import (
     EdgeDef,
     GraphTopology,
@@ -57,7 +57,7 @@ class TestWaveInputs:
         """After writer executes, its 'script' output is stored under the field name
         so reviewer can look it up via all_results.get('script')."""
         topology = _make_topology()
-        executor = WaveExecutor(topology=topology, node_executors={}, settings=Settings())
+        executor = WaveExecutor(topology=topology, node_executors={}, settings=get_settings())
 
         # Simulate what store_result does AFTER node execution:
         # 1. Stores result under node ID
@@ -75,7 +75,7 @@ class TestWaveInputs:
     def test_multi_upstream_inputs(self):
         """compiler takes both 'script' and 'notes' from different nodes."""
         topology = _make_topology()
-        executor = WaveExecutor(topology=topology, node_executors={}, settings=Settings())
+        executor = WaveExecutor(topology=topology, node_executors={}, settings=get_settings())
 
         # Simulate both upstream nodes completed and propagated their outputs
         all_results = {
@@ -93,7 +93,7 @@ class TestWaveInputs:
     def test_returns_empty_for_missing_upstream(self):
         """No upstream results yet - inputs should be empty strings."""
         topology = _make_topology()
-        executor = WaveExecutor(topology=topology, node_executors={}, settings=Settings())
+        executor = WaveExecutor(topology=topology, node_executors={}, settings=get_settings())
 
         all_results = {"goal": "write a movie"}
         inputs = executor._get_node_inputs("reviewer", all_results)
@@ -102,7 +102,7 @@ class TestWaveInputs:
     def test_root_node_has_no_inputs(self):
         """Writer is a root node with no inputs but should still get goal context."""
         topology = _make_topology()
-        executor = WaveExecutor(topology=topology, node_executors={}, settings=Settings())
+        executor = WaveExecutor(topology=topology, node_executors={}, settings=get_settings())
 
         all_results = {"goal": "write a movie"}
         inputs = executor._get_node_inputs("writer", all_results)
@@ -117,7 +117,7 @@ class TestOutputPropagation:
         """After a node completes, its output is indexed by field name so
         downstream _wave_inputs can find it with all_results.get(field_name)."""
         topology = _make_topology()
-        executor = WaveExecutor(topology=topology, node_executors={}, settings=Settings())
+        executor = WaveExecutor(topology=topology, node_executors={}, settings=get_settings())
 
         # Simulate store_result post-execution logic
         writer_result = "FAKE SCREENPLAY"
@@ -142,7 +142,7 @@ class TestOutputPropagation:
         """Full pipeline: writer -> reviewer -> compiler.
         Each node's output must be available as input to the next."""
         topology = _make_topology()
-        executor = WaveExecutor(topology=topology, node_executors={}, settings=Settings())
+        executor = WaveExecutor(topology=topology, node_executors={}, settings=get_settings())
         all_results: dict = {"goal": "test"}
 
         # Wave 1: writer completes

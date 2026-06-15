@@ -10,7 +10,7 @@ import dspy
 from pydantic import BaseModel, Field
 from rich.console import Console
 
-from arachne.config import Settings
+from arachne.config import Settings, get_settings
 from arachne.tools.web._browser_logging import suppress_browser_logs
 from arachne.tools.web._langfuse_telemetry import create_langfuse_callbacks
 
@@ -136,7 +136,7 @@ async def deep_research_async(task: str, max_steps: int = 10, prior_findings: st
     console.print(f'    [magenta]🤖 Launching Deep Research Agent:[/magenta] [bold]"{task[:80]}..."[/bold]')
 
     start_time = time.monotonic()
-    settings = Settings()
+    settings = get_settings()
 
     # Resolve API credentials
     creds = _resolve_api_key(settings)

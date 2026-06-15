@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import dspy
 import pytest
 
-from arachne.config import Settings
+from arachne.config import Settings, get_settings
 from arachne.topologies.tool_resolver import ALLOWED_MCP_COMMANDS, ToolResolver
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -17,7 +17,7 @@ from arachne.topologies.tool_resolver import ALLOWED_MCP_COMMANDS, ToolResolver
 
 def _make_settings() -> Settings:
     """Create Settings with no special config."""
-    return Settings()
+    return get_settings()
 
 
 def _fake_dspy_tool(name: str = "mock_tool") -> MagicMock:

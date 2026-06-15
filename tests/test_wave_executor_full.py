@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from arachne.config import Settings
+from arachne.config import get_settings
 from arachne.topologies.schema import (
     EdgeDef,
     GraphTopology,
@@ -98,7 +98,7 @@ def _diamond_topology() -> tuple[GraphTopology, dict]:
 class TestWaveExecutorInit:
     def test_basic_init(self):
         topo, executors = _linear_topology()
-        settings = Settings()
+        settings = get_settings()
         ex = WaveExecutor(topology=topo, node_executors=executors, settings=settings)
         assert ex.topology is topo
         assert ex.node_executors is executors
@@ -110,7 +110,7 @@ class TestWaveExecutorInit:
     def test_init_with_session(self):
         topo, executors = _linear_topology()
         session = MagicMock()
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings(), session=session)
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings(), session=session)
         assert ex.session is session
 
     def test_init_with_initial_results(self):
@@ -118,7 +118,7 @@ class TestWaveExecutorInit:
         initial = {
             "a": NodeResult(node_id="a", status=ResultStatus.COMPLETED, output={"a_out": "done"}),
         }
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings(), initial_results=initial)
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings(), initial_results=initial)
         assert "a" in ex._results
         assert ex._results["a"].status == ResultStatus.COMPLETED
 
@@ -130,7 +130,7 @@ class TestExecuteWavesLinear:
     @pytest.mark.asyncio
     async def test_linear_all_nodes_execute(self):
         topo, executors = _linear_topology()
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings())
 
         run_result, node_results = await ex.execute_waves({"goal": "test linear goal"})
 
@@ -146,7 +146,7 @@ class TestExecuteWavesLinear:
     @pytest.mark.asyncio
     async def test_linear_inputs_propagate(self):
         topo, executors = _linear_topology()
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings())
 
         await ex.execute_waves({"goal": "propagate test"})
 
@@ -159,7 +159,7 @@ class TestExecuteWavesLinear:
     @pytest.mark.asyncio
     async def test_linear_duration_recorded(self):
         topo, executors = _linear_topology()
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings())
 
         run_result, _ = await ex.execute_waves({"goal": "test"})
 
@@ -175,7 +175,7 @@ class TestExecuteWavesDiamond:
     @pytest.mark.asyncio
     async def test_diamond_all_nodes_execute(self):
         topo, executors = _diamond_topology()
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings())
 
         _, node_results = await ex.execute_waves({"goal": "test diamond"})
 
@@ -191,7 +191,7 @@ class TestExecuteWavesDiamond:
         # Wave 0: [a], Wave 1: [b, c], Wave 2: [d]
         assert waves[1] == ["b", "c"]
 
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings())
         await ex.execute_waves({"goal": "test"})
 
         executors["b"].execute.assert_awaited_once()
@@ -200,7 +200,7 @@ class TestExecuteWavesDiamond:
     @pytest.mark.asyncio
     async def test_diamond_d_receives_both_inputs(self):
         topo, executors = _diamond_topology()
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings())
 
         await ex.execute_waves({"goal": "test"})
 
@@ -217,7 +217,7 @@ class TestExecuteWavesFailures:
     async def test_failure_marks_node_as_failed(self):
         topo, executors = _linear_topology()
         executors["b"].execute = AsyncMock(side_effect=RuntimeError("B blew up"))
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings())
 
         _, node_results = await ex.execute_waves({"goal": "test failure"})
 
@@ -229,7 +229,7 @@ class TestExecuteWavesFailures:
     async def test_failure_skips_downstream(self):
         topo, executors = _linear_topology()
         executors["b"].execute = AsyncMock(side_effect=RuntimeError("B failed"))
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings())
 
         _, node_results = await ex.execute_waves({"goal": "test skip"})
 
@@ -240,7 +240,7 @@ class TestExecuteWavesFailures:
     async def test_diamond_failure_skips_all_downstream(self):
         topo, executors = _diamond_topology()
         executors["b"].execute = AsyncMock(side_effect=RuntimeError("B died"))
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings())
 
         _, node_results = await ex.execute_waves({"goal": "test diamond fail"})
 
@@ -253,7 +253,7 @@ class TestExecuteWavesFailures:
     async def test_failure_still_returns_run_result(self):
         topo, executors = _linear_topology()
         executors["a"].execute = AsyncMock(side_effect=RuntimeError("root fail"))
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings())
 
         run_result, _ = await ex.execute_waves({"goal": "test"})
         assert isinstance(run_result, RunResult)
@@ -293,7 +293,7 @@ class TestExecuteWavesHITL:
 
         ask_user_fn = MagicMock(return_value="yes")
 
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings())
         _, node_results = await ex.execute_waves({"goal": "test hitl"}, ask_user_fn=ask_user_fn)
 
         assert node_results["a"].status == ResultStatus.COMPLETED
@@ -323,7 +323,7 @@ class TestExecuteWavesHITL:
         ex = WaveExecutor(
             topology=topo,
             node_executors={"gate": gate_exec},
-            settings=Settings(),
+            settings=get_settings(),
         )
         # Pass the pre-collected answer in initial inputs
         _, node_results = await ex.execute_waves(
@@ -340,7 +340,7 @@ class TestExecuteWaveParallel:
     @pytest.mark.asyncio
     async def test_parallel_wave_executes_all_nodes(self):
         topo, executors = _diamond_topology()
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings())
         all_results = {"goal": "test"}
         ks = MagicMock()
         lock = asyncio.Lock()
@@ -356,7 +356,7 @@ class TestExecuteWaveParallel:
     async def test_parallel_wave_mixed_success_failure(self):
         topo, executors = _diamond_topology()
         executors["b"].execute = AsyncMock(side_effect=RuntimeError("b broke"))
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings())
         all_results = {"goal": "test", "a_out": "data"}
         ks = MagicMock()
         lock = asyncio.Lock()
@@ -373,7 +373,7 @@ class TestExecuteWaveParallel:
         initial = {
             "b": NodeResult(node_id="b", status=ResultStatus.COMPLETED, output={"b_out": "old"}),
         }
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings(), initial_results=initial)
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings(), initial_results=initial)
         all_results = {"goal": "test", "a_out": "data"}
         ks = MagicMock()
         lock = asyncio.Lock()
@@ -390,7 +390,7 @@ class TestExecuteWaveParallel:
         initial = {
             "b": NodeResult(node_id="b", status=ResultStatus.COMPLETED, output={"b_out": "stale"}),
         }
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings(), initial_results=initial)
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings(), initial_results=initial)
         # Mark 'a' as having been executed this run
         ex._executed_this_run.add("a")
         all_results = {"goal": "test", "a_out": "fresh_data"}
@@ -409,7 +409,7 @@ class TestExecuteWaveParallel:
 class TestGetNodeInputs:
     def test_resolves_inputs_from_upstream(self):
         topo, _ = _linear_topology()
-        ex = WaveExecutor(topology=topo, node_executors={}, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors={}, settings=get_settings())
 
         all_results = {"goal": "g", "a_out": "alpha_output"}
         inputs = ex._get_node_inputs("b", all_results)
@@ -418,7 +418,7 @@ class TestGetNodeInputs:
 
     def test_missing_input_is_empty_string(self):
         topo, _ = _linear_topology()
-        ex = WaveExecutor(topology=topo, node_executors={}, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors={}, settings=get_settings())
 
         all_results = {"goal": "g"}
         inputs = ex._get_node_inputs("b", all_results)
@@ -426,14 +426,14 @@ class TestGetNodeInputs:
 
     def test_goal_always_injected(self):
         topo, _ = _linear_topology()
-        ex = WaveExecutor(topology=topo, node_executors={}, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors={}, settings=get_settings())
 
         inputs = ex._get_node_inputs("a", {"goal": "my goal"})
         assert inputs["goal"] == "my goal"
 
     def test_no_inputs_root_node(self):
         topo, _ = _linear_topology()
-        ex = WaveExecutor(topology=topo, node_executors={}, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors={}, settings=get_settings())
 
         inputs = ex._get_node_inputs("a", {"goal": "g"})
         assert inputs == {"goal": "g"}
@@ -449,7 +449,7 @@ class TestCancelledError:
         in run_one(). It propagates through asyncio.gather and up to execute_waves."""
         topo, executors = _linear_topology()
         executors["b"].execute = AsyncMock(side_effect=asyncio.CancelledError())
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings())
 
         # CancelledError should propagate out (it's a BaseException, not Exception)
         with pytest.raises(asyncio.CancelledError):
@@ -469,7 +469,7 @@ class TestEmptyTopologyEdgeCase:
         nodes = [_node_def("solo", output_field="result")]
         topo = GraphTopology(name="single", objective="one node", nodes=nodes, edges=[])
         executors = {"solo": _mock_node_exec("solo", "result")}
-        ex = WaveExecutor(topology=topo, node_executors=executors, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors=executors, settings=get_settings())
 
         _, node_results = await ex.execute_waves({"goal": "solo test"})
 
@@ -488,7 +488,7 @@ class TestEmptyTopologyEdgeCase:
 class TestSkipDownstream:
     def test_marks_future_waves_as_skipped(self):
         topo, _ = _linear_topology()
-        ex = WaveExecutor(topology=topo, node_executors={}, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors={}, settings=get_settings())
         waves = topo.topological_waves()
 
         ex._skip_downstream(waves, failed_wave_idx=0)
@@ -500,7 +500,7 @@ class TestSkipDownstream:
     def test_skip_saves_session_state(self):
         topo, _ = _linear_topology()
         session = MagicMock()
-        ex = WaveExecutor(topology=topo, node_executors={}, settings=Settings(), session=session)
+        ex = WaveExecutor(topology=topo, node_executors={}, settings=get_settings(), session=session)
         waves = topo.topological_waves()
 
         ex._skip_downstream(waves, failed_wave_idx=0)
@@ -511,7 +511,7 @@ class TestSkipDownstream:
 
     def test_skip_no_session_no_error(self):
         topo, _ = _linear_topology()
-        ex = WaveExecutor(topology=topo, node_executors={}, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors={}, settings=get_settings())
         waves = topo.topological_waves()
         # Should not raise even with no session
         ex._skip_downstream(waves, failed_wave_idx=0)
@@ -523,7 +523,7 @@ class TestSkipDownstream:
 class TestStoreResult:
     def test_stores_output_by_field_name(self):
         topo, _ = _linear_topology()
-        ex = WaveExecutor(topology=topo, node_executors={}, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors={}, settings=get_settings())
         all_results: dict = {"goal": "test"}
         ks = MagicMock()
         node_def = topo.nodes[0]  # node 'a'
@@ -538,7 +538,7 @@ class TestStoreResult:
     def test_store_result_with_session(self):
         topo, _ = _linear_topology()
         session = MagicMock()
-        ex = WaveExecutor(topology=topo, node_executors={}, settings=Settings(), session=session)
+        ex = WaveExecutor(topology=topo, node_executors={}, settings=get_settings(), session=session)
         all_results: dict = {"goal": "test"}
         ks = MagicMock()
         node_def = topo.nodes[0]
@@ -559,7 +559,7 @@ class TestStoreResult:
             output="approval",
         )
         topo = GraphTopology(name="hitl_store", objective="test", nodes=[node], edges=[])
-        ex = WaveExecutor(topology=topo, node_executors={}, settings=Settings())
+        ex = WaveExecutor(topology=topo, node_executors={}, settings=get_settings())
         all_results: dict = {"goal": "test"}
         ks = MagicMock()
 

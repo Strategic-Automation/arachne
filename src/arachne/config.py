@@ -480,6 +480,12 @@ def configure_dspy(settings: Settings) -> Any:
     return limits
 
 
+@functools.lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    """Get globally cached application settings."""
+    return Settings()
+
+
 def reset_dspy_config() -> None:
     """Allow re-configuration (useful in tests)."""
     global _DSPY_CONFIGURED
