@@ -11,3 +11,7 @@
 ## 2024-05-18 - CLI Empty State Handling
 **Learning:** Users can encounter empty states (like listing sessions or graphs) even if the parent directory structure exists. Showing a completely empty table is visually confusing and doesn't tell the user what to do next. Providing actionable error/empty messages is much better UX.
 **Action:** Always verify that a directory actually contains valid entries (like `.json` files or subdirectories) before attempting to iterate and render a UI component (like a table). Fall back to a helpful, actionable empty state message.
+
+## 2026-05-25 - Actionable Error Messages for File and ID Not Found Errors
+**Learning:** Returning generic "Not Found" error messages when querying IDs (like graphs or sessions) leaves users frustrated. Directly supplying the next step (e.g. `Use arachne ls to see available sessions.`) makes the CLI feel much more supportive and immediately resolves the frustration loop.
+**Action:** Always intercept "File Not Found" errors or unvalidated inputs and print a custom empty state message combined with the relevant helper command. Keep the change small, using existing console styles.

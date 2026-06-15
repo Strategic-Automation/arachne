@@ -564,6 +564,7 @@ def list_graphs() -> None:
     table.add_column("Objective/Goal")
     table.add_column("Nodes", justify="right")
 
+    rows = 0
     for p in cache_dir.iterdir():
         if p.suffix != ".json":
             continue
@@ -575,8 +576,15 @@ def list_graphs() -> None:
                 topo.objective[:60] + "..." if len(topo.objective) > 60 else topo.objective,
                 str(len(topo.nodes)),
             )
+            rows += 1
         except Exception:
             continue
+
+    if rows == 0:
+        console.print(
+            "[dim]No valid cached graphs found. Generate one with [bold white]arachne weave[/bold white] or [bold white]arachne run[/bold white].[/dim]"
+        )
+        return
 
     console.print(table)
     console.print("\n[dim]Use [bold white]arachne show <graph-id>[/bold white] to view details.[/dim]")
@@ -694,7 +702,7 @@ def cat_session(
             )
             return
 
-        sessions = sorted(base.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+        sessions = sorted([p for p in base.iterdir() if p.is_dir()], key=lambda p: p.stat().st_mtime, reverse=True)
         if not sessions:
             console.print(
                 "[red]No sessions found.[/red]\n[dim]Run a goal with [bold white]arachne run[/bold white] first.[/dim]"
@@ -703,6 +711,11 @@ def cat_session(
         session_id = sessions[0].name
 
     session_path = base / session_id
+    if not session_path.exists():
+        console.print(
+            f"[bold red]Error:[/bold red] Session '{session_id}' not found.\n[dim]Use [bold white]arachne ls[/bold white] to see available sessions.[/dim]"
+        )
+        return
     state_path = session_path / "state.json"
     graph_path = session_path / "graph.json"
 
