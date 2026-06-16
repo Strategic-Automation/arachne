@@ -11,7 +11,7 @@ def test_list_sessions_not_found():
     mock_dir = MagicMock()
     mock_dir.exists.return_value = False
     with patch("arachne.tools.session.status._SESSIONS_DIR", mock_dir):
-        assert list_sessions() == "No sessions found."
+        assert list_sessions() == "No sessions found. Run a goal with arachne run first."
 
 
 def test_list_sessions_found():
@@ -61,7 +61,9 @@ def test_list_sessions_found():
 
 def test_get_session_status_not_found():
     with patch("arachne.tools.session.status.Path.exists", return_value=False):
-        assert "not found" in get_session_status("run_fake")
+        assert "Session 'run_fake' not found. Use arachne ls to see available sessions." in get_session_status(
+            "run_fake"
+        )
 
 
 def test_list_session_files_no_session():

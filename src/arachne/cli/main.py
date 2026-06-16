@@ -403,7 +403,9 @@ def clean_sessions(
     if deleted_count > 0:
         console.print(f"[green]Cleanup complete. Deleted {deleted_count} session(s).[/green]")
     else:
-        console.print("[dim]No matching sessions found to clean.[/dim]")
+        console.print(
+            "[dim]No matching sessions found to clean. Use [bold white]arachne ls[/bold white] to see available sessions.[/dim]"
+        )
 
 
 @app.command("ls")
@@ -733,7 +735,9 @@ def cat_session(
                     found_any = True
 
         if not found_any:
-            console.print("[yellow]No final outputs found in this session.[/yellow]")
+            console.print(
+                "[yellow]No final outputs found in this session. Run a goal with [bold white]arachne run[/bold white] first.[/yellow]"
+            )
 
     except Exception as e:
         console.print(f"[bold red]Error loading results:[/bold red] {e}")

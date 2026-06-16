@@ -9,7 +9,7 @@ _SESSIONS_DIR = Path.home() / ".local" / "share" / "arachne" / "sessions"
 def list_sessions() -> str:
     """List all Arachne session IDs, their goals, and current status."""
     if not _SESSIONS_DIR.exists():
-        return "No sessions found."
+        return "No sessions found. Run a goal with arachne run first."
 
     sessions = []
     for d in sorted(_SESSIONS_DIR.iterdir()):
@@ -42,7 +42,7 @@ def list_sessions() -> str:
         sessions.append((d.name, goal, graph_name, status))
 
     if not sessions:
-        return "No sessions found."
+        return "No sessions found. Run a goal with arachne run first."
 
     lines = [f"Sessions ({len(sessions)} total):"]
     for sid, goal, graph, status in sessions:
@@ -57,7 +57,7 @@ def get_session_status(session_id: str) -> str:
     """Get the current execution status of a specific session."""
     session_dir = _SESSIONS_DIR / session_id
     if not session_dir.exists():
-        return f"Session '{session_id}' not found."
+        return f"Session '{session_id}' not found. Use arachne ls to see available sessions."
 
     result = {}
     state_path = session_dir / "state.json"
