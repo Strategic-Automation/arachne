@@ -20,88 +20,47 @@ Arachne is designed around five principles:
 ## High-level system
 
 ```mermaid
-flowchart TB
-    subgraph Surface[User surface]
-        CLI[Typer CLI]
-        Project[Project files]
-        Human[Human review]
-    end
-
-    subgraph Core[Arachne runtime]
-        Intake[Goal intake]
-        Weaver[GraphWeaver]
-        Provision[Provisioning]
-        Executor[WaveExecutor]
-        Evaluator[TriangulatedEvaluator]
-        Healer[AutoHealer]
-    end
-
-    subgraph ToolLayer[Tool layer]
-        Resolver[ToolResolver]
-        Builtins[Built-in tools]
-        MCP[MCP servers]
-        Skills[Skill protocols]
-    end
-
-    subgraph State[State and observability]
-        Sessions[Session manager]
-        Topologies[Topology cache]
-        Artifacts[Outputs and checkpoints]
-        Logs[Logs and traces]
-    end
-
-    CLI --> Intake
-    Project --> Intake
-    Human --> Intake
-    Intake --> Weaver
-    Weaver --> Topologies
-    Weaver --> Provision
-    Provision --> Executor
-    Executor --> Resolver
-    Resolver --> Builtins
-    Resolver --> MCP
-    Resolver --> Skills
-    Executor --> Evaluator
-    Evaluator -->|pass| Sessions
-    Evaluator -->|repair needed| Healer
-    Healer -->|retry or re-route| Executor
-    Healer -->|re-weave| Weaver
-    Executor --> Artifacts
-    Executor --> Logs
+graph TD
+    A[CLI]
+    B[Arachne core]
+    C[GraphWeaver]
+    D[Provisioning]
+    E[WaveExecutor]
+    F[ToolResolver]
+    G[Evaluator]
+    H[AutoHealer]
+    I[Session store]
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    E --> G
+    G --> I
+    G --> H
+    H --> C
 ```
 
 ## Execution lifecycle
 
 ```mermaid
-sequenceDiagram
-    actor User
-    participant CLI as CLI
-    participant Core as Arachne core
-    participant Weaver as GraphWeaver
-    participant Exec as WaveExecutor
-    participant Eval as Evaluator
-    participant Heal as AutoHealer
-    participant Store as Session store
-
-    User->>CLI: arachne run "goal"
-    CLI->>Core: GoalDefinition
-    Core->>Weaver: weave topology
-    Weaver-->>Core: GraphTopology
-    Core->>Store: persist graph and inputs
-    Core->>Exec: execute waves
-    Exec->>Store: persist node outputs and checkpoints
-    Exec-->>Core: RunResult
-    Core->>Eval: evaluate result
-    alt acceptable result
-        Eval-->>Core: pass
-        Core->>Store: mark completed
-        Core-->>CLI: render final output
-    else failed or low confidence
-        Eval-->>Core: fail
-        Core->>Heal: diagnose failure
-        Heal-->>Core: retry, re-route, or re-weave
-        Core->>Exec: continue repaired run
-    end
+graph TD
+    A[Goal]
+    B[Create topology]
+    C[Save graph]
+    D[Run waves]
+    E[Save checkpoints]
+    F[Evaluate]
+    G[Return result]
+    H[Repair]
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    F --> H
+    H --> D
 ```
 
 ## Core components
@@ -122,21 +81,12 @@ Responsibilities:
 `WaveExecutor` runs topology nodes in topological waves. Nodes in the same wave do not depend on each other and can run concurrently.
 
 ```mermaid
-flowchart LR
-    subgraph Wave1[Wave 1]
-        A[Search sources]
-        B[Inspect local files]
-    end
-
-    subgraph Wave2[Wave 2]
-        C[Fetch documents]
-        D[Summarise repository context]
-    end
-
-    subgraph Wave3[Wave 3]
-        E[Synthesise answer]
-    end
-
+graph LR
+    A[Search]
+    B[Inspect files]
+    C[Fetch]
+    D[Summarise]
+    E[Synthesise]
     A --> C
     B --> D
     C --> E
@@ -155,30 +105,40 @@ Execution rules:
 `ToolResolver` normalises access to tools from different sources.
 
 ```mermaid
-flowchart TD
-    Node[Node request] --> Resolver[ToolResolver]
-    Resolver --> Builtins[Built-in Python tools]
-    Resolver --> MCP[MCP server tools]
-    Resolver --> Human[Human-in-loop tools]
-    Resolver --> Skills[Skill protocol context]
+graph TD
+    A[Node]
+    B[ToolResolver]
+    C[Built in tools]
+    D[MCP tools]
+    E[Human tools]
+    F[Skills]
+    A --> B
+    B --> C
+    B --> D
+    B --> E
+    B --> F
 ```
 
 This keeps node execution code independent of whether a tool is local, protocol-backed, or human-mediated.
 
 ### TriangulatedEvaluator
 
-The evaluator combines multiple checks rather than trusting a single LLM judgement.
+The evaluator combines multiple checks rather than trusting a single model judgement.
 
 ```mermaid
-flowchart TD
-    Result[Run result] --> Rules[Level 0: deterministic rules]
-    Rules --> Semantic[Level 1: semantic scoring]
-    Semantic --> Confidence{Confidence high enough?}
-    Confidence -->|yes| Pass[Accept output]
-    Confidence -->|no| Human[Level 2: human escalation]
-    Human --> Decision{Approved?}
-    Decision -->|yes| Pass
-    Decision -->|no| Repair[Send to AutoHealer]
+graph TD
+    A[Run result]
+    B[Rule checks]
+    C[Semantic score]
+    D[Human review]
+    E[Accept]
+    F[Repair]
+    A --> B
+    B --> C
+    C --> E
+    C --> D
+    D --> E
+    D --> F
 ```
 
 ### AutoHealer
@@ -196,44 +156,16 @@ Circuit breakers prevent endless repair loops.
 ## Data model
 
 ```mermaid
-classDiagram
-    class GoalDefinition {
-        goal
-        constraints
-        success_criteria
-    }
-
-    class GraphTopology {
-        graph_id
-        nodes
-        edges
-        metadata
-    }
-
-    class NodeDef {
-        id
-        role
-        inputs
-        outputs
-        tools
-    }
-
-    class EdgeDef {
-        source
-        target
-    }
-
-    class RunResult {
-        session_id
-        status
-        outputs
-        failures
-    }
-
-    GoalDefinition --> GraphTopology
-    GraphTopology --> NodeDef
-    GraphTopology --> EdgeDef
-    GraphTopology --> RunResult
+graph TD
+    A[GoalDefinition]
+    B[GraphTopology]
+    C[NodeDef]
+    D[EdgeDef]
+    E[RunResult]
+    A --> B
+    B --> C
+    B --> D
+    B --> E
 ```
 
 ## Session layout
@@ -241,13 +173,20 @@ classDiagram
 Each run persists enough information to inspect, resume, and audit the graph.
 
 ```mermaid
-flowchart TD
-    Session[session directory] --> Inputs[inputs.json]
-    Session --> Graph[graph.json]
-    Session --> State[state.json]
-    Session --> Outputs[outputs]
-    Session --> Checkpoints[checkpoints]
-    Session --> Logs[logs]
+graph TD
+    A[Session directory]
+    B[Inputs]
+    C[Graph]
+    D[State]
+    E[Outputs]
+    F[Checkpoints]
+    G[Logs]
+    A --> B
+    A --> C
+    A --> D
+    A --> E
+    A --> F
+    A --> G
 ```
 
 Typical contents:
@@ -264,39 +203,35 @@ Typical contents:
 ## Configuration flow
 
 ```mermaid
-flowchart TD
-    Env[Shell environment and local .env] --> Settings[Settings loader]
-    Project[Project arachne.yaml] --> Settings
-    User[User defaults] --> Settings
-    Defaults[Code defaults] --> Settings
-    Settings --> Runtime[Runtime configuration]
-    Runtime --> DSPy[DSPy configuration]
-    Runtime --> Tools[Tool availability]
-    Runtime --> Sessions[Session paths]
+graph TD
+    A[Runtime overrides]
+    B[Selected YAML]
+    C[Code defaults]
+    D[Settings loader]
+    E[Runtime config]
+    A --> D
+    B --> D
+    C --> D
+    D --> E
 ```
 
-Configuration is intentionally split between private credentials and structured settings. Runtime values are merged with environment and local `.env` values taking priority.
+Arachne selects a project YAML file when present, otherwise it falls back to the user-level config file. It does not merge those two YAML files together.
 
 ## Trust boundaries
 
 Arachne executes tools and model-generated plans, so trust boundaries matter.
 
 ```mermaid
-flowchart LR
-    UserGoal[User goal] --> Runtime[Arachne runtime]
-    Runtime --> BuiltinTools[Built-in tools]
-    Runtime --> MCPTools[MCP tools]
-    Runtime --> Files[Local files]
-    Runtime --> HumanGate[Human approval]
-
-    classDef untrusted fill:#ffe6e6,stroke:#cc0000,color:#111;
-    classDef guarded fill:#fff4cc,stroke:#cc8a00,color:#111;
-    classDef trusted fill:#e6f4ea,stroke:#1f7a1f,color:#111;
-
-    class UserGoal untrusted;
-    class Runtime guarded;
-    class BuiltinTools,MCPTools,Files guarded;
-    class HumanGate trusted;
+graph LR
+    A[User goal]
+    B[Arachne runtime]
+    C[Tools]
+    D[Local files]
+    E[Human approval]
+    A --> B
+    B --> C
+    B --> D
+    B --> E
 ```
 
 Guidelines:
