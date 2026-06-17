@@ -162,18 +162,9 @@ uv run arachne resume <session-id>
 
 ## Configuration model
 
-Arachne separates private credentials from structured runtime settings:
+Arachne supports project-level and user-level YAML configuration, but it does not merge those two YAML files. The loader selects `./arachne.yaml` when it exists; otherwise it falls back to `~/.arachne/config.yaml`. Runtime override values still take priority over the selected YAML file and built-in defaults.
 
-```mermaid
-flowchart TD
-    Env[Shell environment and local .env] --> Merge[Settings loader]
-    Project[Project arachne.yaml] --> Merge
-    User[User defaults in ~/.arachne/config.yaml] --> Merge
-    Defaults[Code defaults] --> Merge
-    Merge --> Runtime[Runtime Settings object]
-```
-
-Precedence is highest at the top: shell environment and `.env` values override project YAML, user defaults, and built-in defaults.
+For the full configuration flow, see [Architecture deep dive](docs/explanation/architecture.md).
 
 ---
 
