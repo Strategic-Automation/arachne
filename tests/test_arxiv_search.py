@@ -1,10 +1,23 @@
+from importlib import util
+from pathlib import Path
+from types import ModuleType
+
 import pytest
 
-import arachne.tools.web.arxiv_search as arxiv_module
+
+def _load_arxiv_module() -> ModuleType:
+    module_path = Path(__file__).resolve().parents[1] / "src" / "arachne" / "tools" / "web" / "arxiv_search.py"
+    spec = util.spec_from_file_location("arxiv_search_under_test", module_path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 @pytest.mark.asyncio
 async def test_queued_arxiv_results_waits_between_requests(monkeypatch):
+    arxiv_module = _load_arxiv_module()
     sleeps = []
     times = iter([100.0, 100.0, 101.0, 101.0])
 
