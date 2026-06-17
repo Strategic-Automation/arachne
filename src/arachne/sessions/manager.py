@@ -107,7 +107,7 @@ def find_latest_session_by_goal(goal: str, base_dir: str | Path | None = None) -
         return None
 
     # Sort by mtime descending (most recent first)
-    sessions = sorted(directory.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+    sessions = sorted([p for p in directory.iterdir() if p.is_dir()], key=lambda p: p.stat().st_mtime, reverse=True)
     for session_dir in sessions:
         if not session_dir.is_dir():
             continue

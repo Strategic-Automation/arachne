@@ -369,7 +369,7 @@ def clean_sessions(
     from arachne.sessions import default_session_dir
 
     base = default_session_dir()
-    if not base.exists():
+    if not base.exists() or not any(p.is_dir() for p in base.iterdir()):
         console.print(
             "[dim]No sessions found to clean. Run a goal with [bold white]arachne run[/bold white] first.[/dim]"
         )
@@ -378,7 +378,7 @@ def clean_sessions(
     cutoff = time.time() - (older_than_days * 86400) if older_than_days else 0
 
     deleted_count = 0
-    for session_dir in sorted(base.iterdir()):
+    for session_dir in sorted([p for p in base.iterdir() if p.is_dir()], key=lambda p: p.stat().st_mtime, reverse=True):
         if not session_dir.is_dir():
             continue
 
@@ -503,6 +503,9 @@ def resume(
     graph_path = base / "graph.json"
     if not graph_path.exists():
         console.print("[bold red]Error:[/bold red] No 'graph.json' found in session.")
+        console.print(
+            "[dim]The session may not have completed weaving. Use [bold white]arachne run[/bold white] to start a new session.[/dim]"
+        )
         sys.exit(1)
 
     try:
@@ -552,7 +555,7 @@ def list_graphs() -> None:
     settings = Settings.from_yaml()
     # Cache dir logic matching core.py
     cache_dir = settings.session.directory.parent / "topology-cache"
-    if not cache_dir.exists() or not any(p.suffix == ".json" for p in cache_dir.iterdir()):
+    if not cache_dir.exists() or not any(p.is_file() and p.suffix == ".json" for p in cache_dir.iterdir()):
         console.print(
             "[dim]No cached graphs found. Generate one with [bold white]arachne weave[/bold white] or [bold white]arachne run[/bold white].[/dim]"
         )
@@ -702,7 +705,7 @@ def cat_session(
             )
             return
 
-        sessions = sorted(base.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+        sessions = sorted([p for p in base.iterdir() if p.is_dir()], key=lambda p: p.stat().st_mtime, reverse=True)
         if not sessions:
             console.print(
                 "[red]No sessions found.[/red]\n[dim]Run a goal with [bold white]arachne run[/bold white] first.[/dim]"
@@ -773,6 +776,7 @@ def config_cmd(
     elif action == "set":
         if not key or not value:
             console.print("[red]Usage: arachne config set <KEY> <VALUE>[/red]")
+            console.print("[dim]Use [bold white]arachne config list[/bold white] to see available keys.[/dim]")
             return
 
         # Update .env file
