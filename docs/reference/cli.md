@@ -1,80 +1,256 @@
-# CLI Reference
+# CLI reference
 
-Arachne provides a powerful suite of CLI commands for weaving, executing, and auditing agent graphs.
+Arachne exposes a Typer-based CLI for weaving, executing, inspecting, reusing, and recovering agent graphs.
 
-## Core Commands
+```mermaid
+flowchart LR
+    Run[run] --> Session[session]
+    Weave[weave] --> Graph[graph cache]
+    Session --> Cat[cat]
+    Session --> Resume[resume]
+    Graph --> Show[show]
+    Graph --> Rerun[rerun]
+    Session --> Clean[clean]
+```
+
+## Global pattern
+
+Most commands run through `uv` during development:
+
+```bash
+uv run arachne <command> [arguments] [options]
+```
+
+If Arachne is installed as a package, use:
+
+```bash
+arachne <command> [arguments] [options]
+```
+
+## Command summary
+
+| Command | Purpose | Typical use |
+|---|---|---|
+| `run` | weave and execute a goal | normal end-to-end workflow |
+| `weave` | generate a graph without executing it | review or cache a topology |
+| `ls` | list recent sessions | find previous runs |
+| `cat` | render a session result | inspect the latest or named output |
+| `graphs` | list cached topologies | find reusable graph ids |
+| `show` | visualise a session or graph | inspect topology structure |
+| `rerun` | execute a previous topology | reuse a proven plan |
+| `resume` | continue a failed or interrupted session | recover work |
+| `clean` | remove old sessions | maintain local state |
+| `compile-weaver` | compile GraphWeaver examples | improve topology generation |
+| `config` | inspect or update local settings | manage runtime configuration |
+
+## Core workflow commands
 
 ### `run`
-Weave a graph from a natural language goal and execute it immediately.
-- **Usage**: `arachne run [GOAL] [OPTIONS]`
-- **Interactive**: If `[GOAL]` is omitted, you will be prompted to enter it.
-- **Options**:
-    - `--interactive` / `-i`: Review the generated graph before execution.
-    - `--max-retries` / `-r`: Number of times the system will try to "self-heal" (default: 3).
-    - `--max-tokens`: Override the global token limit for this run.
+
+Weave a graph from a natural-language goal and execute it immediately.
+
+```bash
+uv run arachne run "Research the current state of humanoid robotics"
+```
+
+With graph review:
+
+```bash
+uv run arachne run "Research the current state of humanoid robotics" --interactive
+```
+
+Common options:
+
+| Option | Meaning |
+|---|---|
+| `--interactive`, `-i` | review or clarify the plan before execution |
+| `--max-retries`, `-r` | control repair attempts |
+| `--max-tokens` | override the run token budget |
+
+Runtime flow:
+
+```mermaid
+flowchart TD
+    Goal[Goal text] --> Weave[Weave topology]
+    Weave --> Provision[Provision tools]
+    Provision --> Execute[Execute waves]
+    Execute --> Evaluate[Evaluate result]
+    Evaluate -->|pass| Output[Render output]
+    Evaluate -->|fail| Heal[Heal and retry]
+    Heal --> Execute
+```
 
 ### `weave`
-Generate and visualize an agent graph without executing it.
-- **Usage**: `arachne weave [GOAL] [OPTIONS]`
-- **Interactive**: Prompts for goal if omitted.
-- **Options**:
-    - `--output` / `-o`: Save the graph topology to a `.json` file.
 
----
+Generate a graph topology without executing it.
 
-## History & Retrieval
+```bash
+uv run arachne weave "Compare graph-based agent frameworks"
+```
+
+Save the topology:
+
+```bash
+uv run arachne weave "Compare graph-based agent frameworks" --output graph.json
+```
+
+Use this command when you want to inspect structure before allowing a run.
+
+## History and inspection
 
 ### `ls`
-List all historical sessions.
-- **Usage**: `arachne ls [OPTIONS]`
-- **Columns**:
-    - `Session ID`: Unique ID for each execution.
-    - `Created`: Human-friendly relative timestamp.
-    - `Goal`: Truncated goal string.
-    - `Graph ID`: Hash indicating which cached topology was used.
-    - `Status`: Current execution state (Completed, Failed, Running).
-- **Options**:
-    - `--limit` / `-n`: Limit the number of sessions shown.
+
+List recent sessions.
+
+```bash
+uv run arachne ls
+uv run arachne ls -n 10
+```
+
+Typical columns:
+
+| Column | Meaning |
+|---|---|
+| Session ID | unique run identifier |
+| Created | timestamp or relative age |
+| Goal | shortened goal text |
+| Graph ID | topology cache identifier |
+| Status | run state |
 
 ### `cat`
-View the final result (e.g. report or code fix) of a past session.
-- **Usage**: `arachne cat [SESSION_ID]`
-- **Default**: Use `last` (or omit) to see the absolute latest result.
-- **Function**: Automatically identifies "sink" nodes in the graph and renders their outputs in Markdown.
+
+Render the final output for a session.
+
+```bash
+uv run arachne cat last
+uv run arachne cat <session-id>
+```
+
+Use `last` for the most recent session.
 
 ### `graphs`
-List all unique topologies stored in the local cache.
-- **Usage**: `arachne graphs`
-- **Utility**: Allows you to identify strategies that have worked well in the past and retrieve their **Graph ID** for re-execution.
 
----
+List cached graph topologies.
 
-## Reuse & Recovery
+```bash
+uv run arachne graphs
+```
+
+This is useful when you want to reuse a graph with `rerun`.
 
 ### `show`
-Visualize the topology of a specific session or cached graph.
-- **Usage**: `arachne show [ID]`
-- **ID Type**: Accepts either a `Session ID` (e.g. `run_20260405_...`) or a `Graph ID` (SHA256 hash).
+
+Visualise a graph from either a session id or graph id.
+
+```bash
+uv run arachne show <session-id>
+uv run arachne show <graph-id>
+```
+
+## Reuse and recovery
 
 ### `rerun`
+
 Execute a fresh session using an existing topology.
-- **Usage**: `arachne rerun [ID] [OPTIONS]`
-- **ID Type**: Accepts `Session ID` (re-uses that run's goal and graph) or `Graph ID` (uses the cached graph).
-- **Options**:
-    - `--goal`: Override the goal while keeping the graph structure.
-    - `--interactive`: Edit the graph before rerunning.
+
+```bash
+uv run arachne rerun <graph-id>
+```
+
+Override the goal while keeping the graph structure:
+
+```bash
+uv run arachne rerun <graph-id> --goal "Research the same market in Europe"
+```
 
 ### `resume`
-Resume a failed session with auto-healing.
-- **Usage**: `arachne resume [SESSION_ID]`
-- **Function**: Loads the point of failure, diagnoses the issue, and re-executes using cached intermediate states.
 
----
+Resume a failed or interrupted session.
+
+```bash
+uv run arachne resume <session-id>
+```
+
+Recovery flow:
+
+```mermaid
+flowchart TD
+    Failed[Failed or interrupted session] --> Load[Load state]
+    Load --> Diagnose[Diagnose failure]
+    Diagnose --> Strategy{Repair strategy}
+    Strategy -->|retry| Retry[Retry node]
+    Strategy -->|re-route| Reroute[Adjust route]
+    Strategy -->|re-weave| Reweave[Build new topology]
+    Retry --> Continue[Continue execution]
+    Reroute --> Continue
+    Reweave --> Continue
+```
+
+## Maintenance commands
+
+### `clean`
+
+Remove old session data.
+
+```bash
+uv run arachne clean
+```
+
+Use with care when you rely on session history for audit or reproducibility.
+
+### `config`
+
+Inspect or update local runtime settings.
+
+```bash
+uv run arachne config list
+```
+
+The exact supported actions may evolve while Arachne is in beta.
 
 ### `compile-weaver`
-Compile the GraphWeaver module with DSPy optimizers to improve topology generation quality.
-- **Usage**: `arachne compile-weaver [OPTIONS]`
-- **Options**:
-    - `--trainset`: Path to a JSON file of training examples.
-    - `--optimizer`: DSPy optimizer to use (default: `BootstrapFewShot`).
-    - `--output`: Save the compiled module to a file.
+
+Compile the GraphWeaver module with DSPy optimisers.
+
+```bash
+uv run arachne compile-weaver --trainset examples/weaver_trainset.json
+```
+
+Options:
+
+| Option | Meaning |
+|---|---|
+| `--trainset` | JSON training examples |
+| `--optimizer` | DSPy optimiser name |
+| `--output` | compiled module output path |
+
+## Recommended workflows
+
+### First run
+
+```bash
+./quickstart.sh
+uv run arachne run "Research a topic" --interactive
+uv run arachne cat last
+```
+
+### Reuse a good graph
+
+```bash
+uv run arachne graphs
+uv run arachne rerun <graph-id> --goal "A related topic"
+```
+
+### Recover from failure
+
+```bash
+uv run arachne ls -n 10
+uv run arachne resume <session-id>
+uv run arachne cat <session-id>
+```
+
+## See also
+
+- [Getting started](../tutorials/getting-started.md)
+- [Architecture](../explanation/architecture.md)
+- [Developer guide](../guides/developer-guide.md)
