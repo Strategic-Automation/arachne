@@ -11,9 +11,9 @@ def _get_settings_deep_copy() -> _config.Settings:
 _config.get_settings = _get_settings_deep_copy
 Settings = _config.Settings
 
-from arachne.core import Arachne
-from arachne.runtime.evaluator import FailureEvaluator
-from arachne.topologies.schema import (
+from arachne.core import Arachne  # noqa: E402
+from arachne.runtime.evaluator import FailureEvaluator  # noqa: E402
+from arachne.topologies.schema import (  # noqa: E402
     EdgeDef,
     FailureReport,
     GraphTopology,
@@ -21,7 +21,7 @@ from arachne.topologies.schema import (
     NodeResult,
     RunResult,
 )
-from arachne.topologies.weaver import GraphWeaver
+from arachne.topologies.weaver import GraphWeaver  # noqa: E402
 
 __version__ = "0.1.0"
 __all__ = [
