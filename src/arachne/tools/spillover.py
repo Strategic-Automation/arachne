@@ -4,7 +4,7 @@ from functools import wraps
 
 import dspy
 
-from arachne.config import Settings
+from arachne.config import get_settings
 from arachne.sessions.manager import active_session_path
 
 SPILLOVER_THRESHOLD = 32000  # 32KB characters threshold (~8k tokens)
@@ -51,7 +51,7 @@ def with_spillover(tool_name: str, fn: Callable) -> Callable:
 def _handle_spillover(tool_name: str, result_str: str) -> str:
     """Detects large results, truncates dynamically, and writes real content to disk."""
     if len(result_str) > SPILLOVER_THRESHOLD:
-        settings = Settings()
+        settings = get_settings()
 
         # Use per-session spillover directory if a session is active
         sess_path = active_session_path.get()

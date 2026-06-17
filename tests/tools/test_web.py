@@ -62,7 +62,7 @@ async def test_deep_research_basic_mock():
     with (
         patch("arachne.tools.web.deep_research.Agent") as mock_agent,
         patch("arachne.tools.web.deep_research.ChatOpenAI"),
-        patch("arachne.tools.web.deep_research.Settings") as mock_settings_cls,
+        patch("arachne.tools.web.deep_research.get_settings") as mock_settings_cls,
     ):
         # Setup settings mock to have api keys
         mock_settings = MagicMock()

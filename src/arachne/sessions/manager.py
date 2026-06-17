@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from contextvars import ContextVar
 from datetime import UTC, datetime
 from pathlib import Path
@@ -77,14 +78,20 @@ class Session:
         if not outputs_dir.exists():
             return {}
         result = {}
-        for path in outputs_dir.glob("*.json"):
-            try:
-                data = json.loads(path.read_text())
-                node_id = data.get("node_id")
-                if node_id:
-                    result[node_id] = data
-            except json.JSONDecodeError:
-                pass
+        try:
+            with os.scandir(outputs_dir) as it:
+                for entry in it:
+                    if entry.name.endswith(".json") and entry.is_file():
+                        try:
+                            with open(entry.path, "rb") as f:
+                                data = json.load(f)
+                            node_id = data.get("node_id")
+                            if node_id:
+                                result[node_id] = data
+                        except (json.JSONDecodeError, OSError):
+                            pass
+        except FileNotFoundError:
+            pass
         return result
 
     # ── Spillover ─────────────────────────────────────────────────────
@@ -106,20 +113,26 @@ def find_latest_session_by_goal(goal: str, base_dir: str | Path | None = None) -
     if not directory.exists():
         return None
 
-    # Sort by mtime descending (most recent first)
-    sessions = sorted([p for p in directory.iterdir() if p.is_dir()], key=lambda p: p.stat().st_mtime, reverse=True)
-    for session_dir in sessions:
-        if not session_dir.is_dir():
-            continue
+    entries = []
+    try:
+        with os.scandir(directory) as it:
+            for entry in it:
+                if entry.is_dir():
+                    entries.append((entry.path, entry.stat().st_mtime, entry.name))
+    except FileNotFoundError:
+        return None
 
-        inputs_path = session_dir / "inputs.json"
-        if inputs_path.exists():
-            try:
-                with open(inputs_path) as f:
-                    inputs = json.load(f)
-                    if inputs.get("goal") == goal:
-                        return session_dir.name
-            except (json.JSONDecodeError, OSError):
-                continue
+    # Sort by mtime descending (most recent first)
+    entries.sort(key=lambda x: x[1], reverse=True)
+
+    for path, _, name in entries:
+        inputs_path = os.path.join(path, "inputs.json")
+        try:
+            with open(inputs_path, "rb") as f:
+                inputs = json.load(f)
+                if inputs.get("goal") == goal:
+                    return name
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            continue
 
     return None

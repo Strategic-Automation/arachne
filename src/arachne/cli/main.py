@@ -16,7 +16,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from arachne.cli.display import display_results, display_topology, show_banner
-from arachne.config import Settings, configure_dspy
+from arachne.config import Settings, configure_dspy, get_settings
 from arachne.core import Arachne
 from arachne.tools import is_builtin as is_tool_builtin
 from arachne.tools import list_tools as get_tool_names
@@ -369,7 +369,7 @@ def clean_sessions(
     from arachne.sessions import default_session_dir
 
     base = default_session_dir()
-    if not base.exists() or not any(p.is_dir() for p in base.iterdir()):
+    if not base.exists():
         console.print(
             "[dim]No sessions found to clean. Run a goal with [bold white]arachne run[/bold white] first.[/dim]"
         )
@@ -378,7 +378,7 @@ def clean_sessions(
     cutoff = time.time() - (older_than_days * 86400) if older_than_days else 0
 
     deleted_count = 0
-    for session_dir in sorted([p for p in base.iterdir() if p.is_dir()], key=lambda p: p.stat().st_mtime, reverse=True):
+    for session_dir in sorted(base.iterdir()):
         if not session_dir.is_dir():
             continue
 
@@ -503,9 +503,6 @@ def resume(
     graph_path = base / "graph.json"
     if not graph_path.exists():
         console.print("[bold red]Error:[/bold red] No 'graph.json' found in session.")
-        console.print(
-            "[dim]The session may not have completed weaving. Use [bold white]arachne run[/bold white] to start a new session.[/dim]"
-        )
         sys.exit(1)
 
     try:
@@ -516,7 +513,7 @@ def resume(
 
     display_topology(topology, title=f"[bold]Resuming Session: {session_id}[/bold]")
 
-    settings = Settings.from_yaml()
+    settings = get_settings()
     _ensure_logging()
     configure_dspy(settings)
     from arachne.ports import RichTerminalOutput
@@ -552,10 +549,10 @@ def resume(
 @app.command("graphs")
 def list_graphs() -> None:
     """List all cached topologies that have been woven and validated."""
-    settings = Settings.from_yaml()
+    settings = get_settings()
     # Cache dir logic matching core.py
     cache_dir = settings.session.directory.parent / "topology-cache"
-    if not cache_dir.exists() or not any(p.is_file() and p.suffix == ".json" for p in cache_dir.iterdir()):
+    if not cache_dir.exists() or not any(p.suffix == ".json" for p in cache_dir.iterdir()):
         console.print(
             "[dim]No cached graphs found. Generate one with [bold white]arachne weave[/bold white] or [bold white]arachne run[/bold white].[/dim]"
         )
@@ -567,7 +564,6 @@ def list_graphs() -> None:
     table.add_column("Objective/Goal")
     table.add_column("Nodes", justify="right")
 
-    rows_added = 0
     for p in cache_dir.iterdir():
         if p.suffix != ".json":
             continue
@@ -579,15 +575,8 @@ def list_graphs() -> None:
                 topo.objective[:60] + "..." if len(topo.objective) > 60 else topo.objective,
                 str(len(topo.nodes)),
             )
-            rows_added += 1
         except Exception:
             continue
-
-    if rows_added == 0:
-        console.print(
-            "[dim]No valid cached graphs found. Generate one with [bold white]arachne weave[/bold white] or [bold white]arachne run[/bold white].[/dim]"
-        )
-        return
 
     console.print(table)
     console.print("\n[dim]Use [bold white]arachne show <graph-id>[/bold white] to view details.[/dim]")
@@ -598,7 +587,7 @@ def show(id_or_sid: str = typer.Argument(..., help="Session ID (run_...) or Grap
     """Visualize a graph topology from a session or the cache."""
     from arachne.sessions import default_session_dir
 
-    settings = Settings.from_yaml()
+    settings = get_settings()
     cache_dir = settings.session.directory.parent / "topology-cache"
 
     path = None
@@ -636,7 +625,7 @@ def rerun(
     """Execute a fresh run using a specific graph (from session or cache)."""
     from arachne.sessions import default_session_dir
 
-    settings = Settings.from_yaml()
+    settings = get_settings()
     cache_dir = settings.session.directory.parent / "topology-cache"
 
     topology_path = None
@@ -705,7 +694,7 @@ def cat_session(
             )
             return
 
-        sessions = sorted([p for p in base.iterdir() if p.is_dir()], key=lambda p: p.stat().st_mtime, reverse=True)
+        sessions = sorted(base.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
         if not sessions:
             console.print(
                 "[red]No sessions found.[/red]\n[dim]Run a goal with [bold white]arachne run[/bold white] first.[/dim]"
@@ -718,10 +707,7 @@ def cat_session(
     graph_path = session_path / "graph.json"
 
     if not state_path.exists():
-        console.print(
-            f"[bold red]Error:[/bold red] No results found for session '{session_id}'.\n"
-            "[dim]Use [bold white]arachne ls[/bold white] to see available sessions.[/dim]"
-        )
+        console.print(f"[bold red]Error:[/bold red] No results found for session '{session_id}'.")
         return
 
     try:
@@ -760,7 +746,7 @@ def config_cmd(
     value: str | None = typer.Argument(None),
 ) -> None:
     """Manage calculation settings and .env variables."""
-    settings = Settings.from_yaml()
+    settings = get_settings()
 
     if action == "list":
         table = Table(title="[bold]Arachne Configuration[/bold]")
@@ -776,7 +762,6 @@ def config_cmd(
     elif action == "set":
         if not key or not value:
             console.print("[red]Usage: arachne config set <KEY> <VALUE>[/red]")
-            console.print("[dim]Use [bold white]arachne config list[/bold white] to see available keys.[/dim]")
             return
 
         # Update .env file
@@ -832,7 +817,7 @@ def compile_weaver(
     )
 
     _ensure_logging()
-    settings = Settings.from_yaml()
+    settings = get_settings()
 
     console.print("[bold cyan]Compiling GraphWeaver sub-predictors with BootstrapFewShot...[/bold cyan]")
     console.print("[dim]  • weave (topology generation)[/dim]")
@@ -855,7 +840,7 @@ def compile_weaver(
 @app.command()
 def info() -> None:
     """Show Arachne configuration and active LLM."""
-    settings = Settings.from_yaml()
+    settings = get_settings()
     api_key_set = bool(settings.llm_api_key.get_secret_value())
     console.print(
         Panel(

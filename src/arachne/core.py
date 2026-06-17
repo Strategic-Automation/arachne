@@ -10,7 +10,7 @@ from typing import Any
 
 import dspy
 
-from arachne.config import Settings, configure_dspy
+from arachne.config import Settings, configure_dspy, get_settings
 from arachne.execution.manager import ExecutionManager
 from arachne.ports import HeadlessOutput, OutputPort, RichTerminalOutput
 from arachne.runtime.evaluator import TriangulatedEvaluator
@@ -39,7 +39,7 @@ class Arachne(dspy.Module):
         output: OutputPort | None = None,
     ) -> None:
         super().__init__()
-        self.settings = settings or Settings.from_yaml()
+        self.settings = settings or get_settings()
         self.goal_definition = goal_definition
         self.max_retries = max_retries
         self.interactive = interactive
