@@ -1,176 +1,227 @@
 # <p align="center"><img src="docs/assets/logo.png" width="300" alt="Arachne Logo"></p>
-# 🕷️ Arachne — The DSPy-Native Agent Runtime
+# 🕷️ Arachne — DSPy-native runtime for self-healing agent graphs
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/release/python-3110/)
 [![CI Status](https://github.com/Strategic-Automation/arachne/actions/workflows/ci.yml/badge.svg)](https://github.com/Strategic-Automation/arachne/actions)
 [![DSPy Powered](https://img.shields.io/badge/DSPy-Optimized-red)](https://github.com/stanfordnlp/dspy)
 
-**Stop Prompting. Start Programming.** Arachne is an open-source runtime for AI agents that replaces brittle prompt-chaining with DSPy-native optimized graphs. Describe your goal in natural language — Arachne weaves the topology, executes with protocol-first tools (MCP), and heals itself on failure.
+**Stop prompting. Start programming.** Arachne turns natural-language goals into typed, inspectable, DSPy-native execution graphs. It weaves a directed graph, provisions tools, executes nodes in parallel waves, evaluates the output, and can repair or re-weave when a run fails.
 
-> **Beta** — Arachne v0.1.0 is under active development. APIs may change.
-
-## 💎 Why Arachne?
-
-Traditional agent frameworks leave you fighting fragile prompts and manual debugging. Arachne inverts this:
-
-| Pain Point | Arachne Solution |
-|-----------|----------------|
-| **Vague Goals** | **Intelligent Intake**: Asks clarifying questions *before* weaving the graph. |
-| **Brittle Prompts** | **DSPy Signatures**: Compiled contracts that ensure type-checked reliability. |
-| **Sequential Bottlenecks** | **Wave Parallelism**: Dynamic DAGs with concurrent async execution. |
-| **Silent Failures** | **Autonomous Healing**: Self-diagnoses and re-weaves on quality drops. |
-| **Black-Box Autonomy** | **Interactive Oversight**: Real-time feedback loops and final approval gates. |
+> **Beta:** Arachne `0.1.x` is under active development. Interfaces may change while the runtime stabilises.
 
 ---
 
-## ⚡ Key Features
+## Why Arachne?
 
-- **🧠 Goal Clarification** — Pauses to resolve ambiguity *before* execution in `--interactive` mode.
-- **🎯 Declarative Logic** — DSPy Signatures define input/output contracts, not prompts.
-- **🔀 Dynamic Graph Weaving** — LLM generates optimal execution DAGs for any goal.
-- **⚡ Wave-Based Parallelism** — Concurrent node execution via `asyncio`.
-- **🛡️ Triangulated Verification** — Quality gates: rules → semantic → human escalation.
-- **🔄 Autonomous Self-Healing** — Diagnoses failures and re-weaves strategy on the fly.
-- **🤝 Human-in-the-Loop** — Built-in checkpoints for manual approval and steering.
-- **📦 Topology Reuse** — Hash-based caching for instant graph resumption.
+Most agent systems are prompt chains wrapped in orchestration code. They are hard to inspect, hard to resume, and brittle when a tool fails. Arachne treats agent work as a graph-shaped programme:
+
+| Problem | Arachne approach |
+|---|---|
+| Vague goals | Interactive goal clarification before execution |
+| Brittle prompt chains | DSPy signatures and Pydantic topology models |
+| Slow sequential plans | Topological wave execution with async concurrency |
+| Lost state | Durable sessions, cached graphs, and checkpoints |
+| Silent failure | Rules, semantic scoring, and human review gates |
+| Expensive retries | Targeted retry, re-route, or re-weave repair strategies |
+
+## Highlights
+
+- **DSPy-native graph weaving** — goals become structured `GraphTopology` models rather than hidden prompt chains.
+- **Parallel wave execution** — independent nodes run concurrently once their dependencies are satisfied.
+- **Protocol-first tools** — built-in tools and MCP integrations share the same resolver path.
+- **Self-healing loop** — failed or low-quality runs can be retried, re-routed, or re-woven.
+- **Human oversight** — interactive mode lets users review and steer generated plans.
+- **Session-first runtime** — every run has a durable local record for audit, resume, and reuse.
 
 ---
 
-## How It Works
+## Runtime lifecycle
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  1. DESCRIBE YOUR GOAL                                             │
-│     "Research the latest advances in humanoid robotics"                  │
-└─────────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  2. ARACHNE WEAVES THE GRAPH                                       │
-│     ↓                                                              │
-│  ┌─────────┐    ┌─────────┐    ┌─────────┐                       │
-│  │ search │───▶│ fetch  │───▶│summarize│                       │
-│  │  web  │    │content │    │findings│                       │
-│  └─────────┘    └─────────┘    └─────────┘                       │
-│     (parallel)        ↓                                      │
-│                  [pointer pattern for large data]                 │
-└─────────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  3. EXECUTE & VERIFY                                              │
-│     ↓                                                              │
-│  • Wave 1: Search runs                                              │
-│  • Wave 2: Fetch content (uses search results)                      │
-│  • Wave 3: Generate report                                         │
-│  • Evaluate: Triangulated quality check                             │
-│     ↓                                                              │
-│  [Success?] ──▶ Return Results                                    │
-│     │                                                              │
-│     └── [Failure?] ──▶ AutoHealer ──▶ Retry / Re-Weave            │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A[User goal] --> B{Interactive mode?}
+    B -- yes --> C[Clarify goal and constraints]
+    B -- no --> D[Build GoalDefinition]
+    C --> D
+    D --> E[GraphWeaver creates GraphTopology]
+    E --> F[Provision tools and skills]
+    F --> G[Execute graph in waves]
+    G --> H[Triangulated evaluation]
+    H -->|passes| I[Persist session and return result]
+    H -->|fails| J[AutoHealer diagnoses issue]
+    J --> K{Repair strategy}
+    K -->|retry| G
+    K -->|re-route| G
+    K -->|re-weave| E
 ```
 
+## Architecture at a glance
+
+```mermaid
+flowchart LR
+    subgraph User[User surface]
+        CLI[Typer CLI]
+        Files[Local project files]
+    end
+
+    subgraph Runtime[Arachne runtime]
+        Core[Arachne core]
+        Weaver[GraphWeaver]
+        Executor[WaveExecutor]
+        Evaluator[TriangulatedEvaluator]
+        Healer[AutoHealer]
+    end
+
+    subgraph Tooling[Tool layer]
+        Resolver[ToolResolver]
+        Builtins[Built-in tools]
+        MCP[MCP servers]
+        Skills[Skill library]
+    end
+
+    subgraph State[State and observability]
+        Sessions[Session store]
+        Cache[Topology cache]
+        Logs[Logs and traces]
+    end
+
+    CLI --> Core
+    Files --> Core
+    Core --> Weaver
+    Weaver --> Executor
+    Executor --> Resolver
+    Resolver --> Builtins
+    Resolver --> MCP
+    Resolver --> Skills
+    Executor --> Evaluator
+    Evaluator -->|repair needed| Healer
+    Healer --> Weaver
+    Core --> Sessions
+    Weaver --> Cache
+    Executor --> Logs
+```
+
 ---
 
-### Run Your First Agent
+## Quick start
 
-The easiest way to get started is with the interactive quickstart script:
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Strategic-Automation/arachne.git
+cd arachne
+```
+
+### 2. Run the setup wizard
 
 ```bash
 ./quickstart.sh
 ```
 
-This will guide you through:
-1. **Prerequisites check** (Python 3.11+, uv)
-2. **LLM selection** (Ollama, OpenRouter, OpenAI, Anthropic)
-3. **Environment setup** (generates `.env` and `arachne.yaml`)
-4. **Tool provisioning** (web search, browser, etc.)
+The wizard checks your Python and `uv` setup, installs dependencies, and helps create local configuration files.
 
-Once configured, run a goal:
+### 3. Run your first goal
 
 ```bash
 uv run arachne run "Research the current state of humanoid robotics"
 ```
 
-Arachne will:
-1. **Weave** a graph from your goal
-2. **Provision** tools (web search, fetch, etc.)
-3. **Execute** in topological waves
-4. **Verify** output quality
-5. **Heal** if anything fails
-
-### Other Commands
+For extra control, enable interactive review:
 
 ```bash
-# View your last session report
-uv run arachne cat last
+uv run arachne run "Research the current state of humanoid robotics" --interactive
+```
+
+---
+
+## Common commands
+
+```bash
+# Weave and execute a goal
+uv run arachne run "Create a market map for open-source agent runtimes"
+
+# Generate a graph without running it
+uv run arachne weave "Compare DSPy and LangGraph for graph-based agents"
 
 # List recent sessions
 uv run arachne ls -n 5
 
-# Reuse a cached graph
+# Read the latest result
+uv run arachne cat last
+
+# List cached graph topologies
+uv run arachne graphs
+
+# Reuse a previous graph
 uv run arachne rerun <graph-id>
+
+# Resume a failed run
+uv run arachne resume <session-id>
 ```
 
----
+## Configuration model
 
-## 🏗️ Architecture
+Arachne separates private credentials from structured runtime settings:
 
-```
-goal → GraphWeaver (dspy.ChainOfThought) → GraphTopology (Pydantic)
-                                              ↓
-                                        WaveExecutor
-                                        wave-based parallel execution
-                                        via dspy.asyncify + gather()
-                                              ↓
-                                  TriangulatedEvaluator
-                                              ↓
-                                       AutoHealer
-                              ↑           ↓ retry / re-weave
-                              └───────────┘
+```mermaid
+flowchart TD
+    Env[Shell environment and local .env] --> Merge[Settings loader]
+    Project[Project arachne.yaml] --> Merge
+    User[User defaults in ~/.arachne/config.yaml] --> Merge
+    Defaults[Code defaults] --> Merge
+    Merge --> Runtime[Runtime Settings object]
 ```
 
-- **GraphWeaver**: LLM generates optimized DAGs from goals
-- **WaveExecutor**: Parallel node execution with dependency handling
-- **TriangulatedEvaluator**: Three-level quality verification
-- **AutoHealer**: Autonomous failure diagnosis and repair
+Precedence is highest at the top: shell environment and `.env` values override project YAML, user defaults, and built-in defaults.
 
 ---
 
-## ⚙️ Configuration
+## Documentation
 
-Arachne uses a dual-file configuration strategy to separate secrets from settings:
-
-- **`.env`** (Git-ignored): Stores your **secrets** (e.g., `LLM_API_KEY`, `LANGFUSE_SECRET_KEY`).
-- **`arachne.yaml`** (Git-ignored): Stores **structured settings** (e.g., cost budgets, model IDs, observability flags).
-
-The framework automatically merges these on startup, with environment variables taking highest precedence over file-based settings.
-
----
-
-## 📚 Documentation
-
-| Topic | Link |
-|-------|------|
-| Getting Started | [docs/tutorials/getting-started.md](docs/tutorials/getting-started.md) |
-| Architecture Deep-Dive | [docs/explanation/architecture.md](docs/explanation/architecture.md) |
-| CLI Reference | [docs/reference/cli.md](docs/reference/cli.md) |
+| Need | Start here |
+|---|---|
+| Install and run your first goal | [Getting started](docs/tutorials/getting-started.md) |
+| Understand the system design | [Architecture deep dive](docs/explanation/architecture.md) |
+| Use the CLI well | [CLI reference](docs/reference/cli.md) |
+| Browse all docs | [Documentation index](docs/index.md) |
+| Contribute safely | [Contributor guide](docs/roadmap/contributing.md) |
 
 ---
 
-## 🛤️ Roadmap
+## Project status
 
-- **v0.2.0** — Wave-level checkpointing, session resume
-- **v0.3.0** — Semantic topology search (vector-based reuse)
-- **v0.4.0** — Event bus & live streaming
+Arachne is suitable for experimentation, research workflows, and early integrator feedback. The current focus is reliability, observability, graph reuse, and clearer extension points for tools and skills.
 
-See [ROADMAP.md](ROADMAP.md) for full vision and milestones.
+Planned areas:
+
+- richer graph review and editing
+- stronger resumability around checkpoints
+- semantic graph reuse
+- cleaner event streaming
+- expanded MCP integration patterns
+
+See [ROADMAP.md](ROADMAP.md) for more detail.
 
 ---
 
-## 🤝 Community & License
+## Contributing
 
-- **Issues**: [GitHub Issues](https://github.com/Strategic-Automation/arachne/issues)
-- **License**: MIT (Strategic Automation Ltd.)
+Contributions are welcome. Useful starting points:
+
+- open an issue with a focused bug report or proposal
+- improve documentation or examples
+- add tests around graph execution, tool resolution, or session recovery
+- keep PRs small and easy to review
+
+Before opening a PR, run:
+
+```bash
+uv sync --all-groups
+uv run ruff check src/arachne tests
+uv run pytest
+```
+
+## License
+
+Arachne is released under the MIT License. See [LICENSE](LICENSE) for details.
