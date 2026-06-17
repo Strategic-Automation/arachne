@@ -1,59 +1,102 @@
-# Arachne Documentation
+# Arachne documentation
 
-Welcome to the Arachne documentation. This site is organized using the [Diátaxis framework](https://diataxis.fr/) to help you find the right content for your needs.
+Welcome to the Arachne documentation. Arachne is a DSPy-native runtime for turning goals into typed, inspectable, self-healing execution graphs.
 
-## 🕸️ Our Philosophy: Stop Prompting. Start Programming.
+The docs follow the [Diátaxis](https://diataxis.fr/) structure so readers can choose the right material for the job: tutorials for learning, guides for doing, explanation for understanding, and reference for exact details.
 
-Most agent frameworks rely on "long prompts" that are hard to debug and even harder to scale. Arachne is built on **DSPy**, which treats agent logic as **code**, not strings. We replace fragile prompting with:
-- **Compiled Signatures**: Robust input/output contracts.
-- **Dynamic Weaving**: Graphs that adapt to your goal.
-- **Autonomous Healing**: Systems that fix themselves when they break.
+## Start here
 
-## 🏗️ Documentation Structure
+```mermaid
+flowchart TD
+    A[New to Arachne?] --> B[Getting started]
+    A --> C[Architecture deep dive]
+    A --> D[CLI reference]
+    A --> E[Developer guide]
 
-| Quadrant | Focus | Purpose |
-|----------|-------|---------|
-| **[Tutorials](tutorials/getting-started.md)** | Learning-oriented | Step-by-step guides for beginners to get running fast. |
-| **[Guides](guides/developer-guide.md)** | Goal-oriented | Practical recipes for testing, tools, and advanced workflows. |
-| **[Explanation](explanation/architecture.md)** | Understanding-oriented | Deep dives into the Weaver, Wave Executor, and Healing logic. |
-| **[Reference](reference/cli.md)** | Information-oriented | Authoritative specs for the CLI, Schemas, and Standards. |
+    B --> F[Run your first goal]
+    C --> G[Understand graph weaving and healing]
+    D --> H[Find exact commands]
+    E --> I[Contribute tools, skills, and tests]
+```
 
-## Quick Links
+| Reader goal | Recommended page |
+|---|---|
+| Install Arachne and run a first goal | [Getting started](tutorials/getting-started.md) |
+| Understand the runtime lifecycle | [Architecture](explanation/architecture.md) |
+| Learn command syntax | [CLI reference](reference/cli.md) |
+| Work on the codebase | [Developer guide](guides/developer-guide.md) |
+| Understand DSPy-native design | [DSPy-native concepts](key_concepts/dspy-native.md) |
+| Understand large-output handling | [Pointer pattern](key_concepts/pointer-pattern.md) |
 
-### Tutorials
-- [Getting Started](tutorials/getting-started.md) — Set up Arachne and run your first agent
+## Documentation map
 
-### Guides
-- [Developer Guide](guides/developer-guide.md) — Setup, testing, and workflow
-- [Testing Guide](guides/testing.md) — Running tests and pytest configuration
-- [Creating Skills](guides/creating-skills.md) — Authoring custom expert skills
-- [MCP Setup](guides/mcp-setup.md) — Model Context Protocol integration
+```mermaid
+flowchart LR
+    subgraph Tutorials
+        T1[Getting started]
+    end
 
-### Explanation
-- [Architecture](explanation/architecture.md) — System design, components, and data flow
-- [Architecture Overview](architecture/overview.md) — High-level system overview
-- [Graph Orchestration](architecture/graph-orchestration.md) — Topology weaving and execution
-- [MCP Integration](architecture/mcp-integration.md) — MCP server integration design
-- [Self-Healing](architecture/self-healing.md) — AutoHealer and failure recovery
+    subgraph Guides
+        G1[Developer guide]
+        G2[Testing guide]
+        G3[Creating skills]
+        G4[MCP setup]
+    end
 
-### Key Concepts
-- [DSPy-Native](key_concepts/dspy-native.md) — Why DSPy over prompt engineering
-- [Triangulated Evaluation](key_concepts/triangulated-evaluation.md) — Rules + Semantic + HITL
-- [Pointer Pattern](key_concepts/pointer-pattern.md) — Large output spillover to disk
+    subgraph Explanation
+        E1[Architecture]
+        E2[Graph orchestration]
+        E3[MCP integration]
+        E4[Self-healing]
+    end
 
-### Reference
-- [CLI Reference](reference/cli.md) — Comprehensive command-line guide
-- [Schema Reference](reference/schema.md) — Pydantic models and topology schemas
-- [Coding Standards](reference/coding-standards.md) — Python style and conventions
-- [Security Policy](reference/security.md) — Security and trust boundaries
+    subgraph Reference
+        R1[CLI reference]
+        R2[Schema reference]
+        R3[Coding standards]
+        R4[Security policy]
+    end
 
-### Other Resources
-- [Configuration](configuration.md) — Environment variables and YAML settings
-- [Environment Setup](environment-setup.md) — Installing dependencies
-- [Troubleshooting](troubleshooting.md) — Common issues and solutions
-- [Contributing](roadmap/contributing.md) — Contribution guidelines
+    T1 --> G1
+    G1 --> E1
+    E1 --> R1
+    E1 --> R2
+```
 
-## Related Resources
+## Tutorials
 
-- [AGENTS.md](../AGENTS.md) — Agent instructions and project rules
-- [ROADMAP.md](../ROADMAP.md) — Project vision, phases, and milestones
+- [Getting started](tutorials/getting-started.md) — set up Arachne and run a first agent graph.
+
+## Guides
+
+- [Developer guide](guides/developer-guide.md) — local setup, workflow, and project conventions.
+- [Testing guide](guides/testing.md) — running tests and understanding pytest configuration.
+- [Creating skills](guides/creating-skills.md) — adding reusable expert protocols.
+- [MCP setup](guides/mcp-setup.md) — connecting Model Context Protocol servers.
+
+## Explanation
+
+- [Architecture](explanation/architecture.md) — system design, graph lifecycle, data flow, and trust boundaries.
+- [Architecture overview](architecture/overview.md) — high-level runtime view.
+- [Graph orchestration](architecture/graph-orchestration.md) — topology weaving and wave execution.
+- [MCP integration](architecture/mcp-integration.md) — tool integration design.
+- [Self-healing](architecture/self-healing.md) — AutoHealer and recovery strategies.
+
+## Concepts
+
+- [DSPy-native](key_concepts/dspy-native.md) — why Arachne uses DSPy signatures over prompt chains.
+- [Triangulated evaluation](key_concepts/triangulated-evaluation.md) — rules, semantic scoring, and human escalation.
+- [Pointer pattern](key_concepts/pointer-pattern.md) — large-output spillover and downstream retrieval.
+
+## Reference
+
+- [CLI reference](reference/cli.md) — command syntax, options, and examples.
+- [Schema reference](reference/schema.md) — Pydantic models and topology contracts.
+- [Coding standards](reference/coding-standards.md) — style, linting, and review expectations.
+- [Security policy](reference/security.md) — threat model and disclosure process.
+
+## Project resources
+
+- [README](../README.md) — public project landing page.
+- [AGENTS.md](../AGENTS.md) — AI coding assistant context.
+- [ROADMAP.md](../ROADMAP.md) — project vision and milestone plan.

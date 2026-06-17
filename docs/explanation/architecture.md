@@ -1,249 +1,352 @@
 ---
 type: explanation
-description: Deep dive into Arachne's system architecture, components, and design patterns
+description: Deep dive into Arachne's runtime architecture, graph lifecycle, execution model, and trust boundaries
 ---
 
-# Arachne Architecture
+# Arachne architecture
 
-## System Overview
+Arachne is a DSPy-native runtime for goal-driven agent graphs. A user supplies a goal, Arachne turns it into a typed topology, executes that topology in dependency-aware waves, evaluates the result, and repairs the run when quality or execution checks fail.
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                                Arachne CLI                                  │
-│  (run, weave, resume, clean, ls)                                            │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                                      ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           Arachne Core                                      │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐   │
-│  │   Weaver   │───▶│  Provision │───▶│   Runner    │───▶│  Evaluator │   │
-│  └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘   │
-│        │                                        │                │           │
-│        │                                        ▼                │           │
-│        │                               ┌─────────────────┐        │           │
-│        └──────────────────────────────│  AutoHealer    │◀───────┘           │
-│                                        │ (Self-Healing) │                    │
-│                                        └─────────────────┘                    │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                                      ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           Sessions Layer                                    │
-│  ┌──────────────────────────────────────────────────────────────────────┐    │
-│  │  Session Manager                                                  │    │
-│  │  ├── inputs.json    (goal, context)                              │    │
-│  │  ├── graph.json     (woven topology)                             │    │
-│  │  ├── state.json     (node results, status)                       │    │
-│  │  ├── checkpoints/  (wave-level snapshots)                       │    │
-│  │  ├── outputs/      (node artifacts)                              │    │
-│  │  └── logs/         (execution logs)                              │    │
-│  └──────────────────────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+## System goals
 
-## Execution Flow
+Arachne is designed around five principles:
 
-```
-Goal → Weaver(LLM) → GraphTopology → GraphRunner → Evaluate → [Fail?] → AutoHealer → Re-weave/Re-route/Retry
-                                                                        ↓ [Pass]
-                                                                  Return Results
-```
+1. **Graphs over prompt chains** — agent plans are explicit directed acyclic graphs.
+2. **Typed contracts** — DSPy signatures and Pydantic models define interfaces.
+3. **Parallel where safe** — independent graph nodes run in topological waves.
+4. **Inspectable state** — sessions, graphs, checkpoints, and outputs are persisted.
+5. **Repair over restart** — failures trigger retry, re-route, or re-weave strategies.
 
-## Core Components
+## High-level system
 
-### 1. GraphWeaver (`topologies/weaver.py`)
+```mermaid
+flowchart TB
+    subgraph Surface[User surface]
+        CLI[Typer CLI]
+        Project[Project files]
+        Human[Human review]
+    end
 
-**Responsibility:** Transforms natural language goals into DSPy-native graph topologies.
+    subgraph Core[Arachne runtime]
+        Intake[Goal intake]
+        Weaver[GraphWeaver]
+        Provision[Provisioning]
+        Executor[WaveExecutor]
+        Evaluator[TriangulatedEvaluator]
+        Healer[AutoHealer]
+    end
 
-- DSPy `Module` using `dspy.ChainOfThought` for topology generation
-- Low temperature (0.1) for deterministic structured output
-- Uses `TopologyEvaluator` as reward_fn with `N=3, threshold=0.8`
-- Constraints from `GoalDefinition` injected into prompt
+    subgraph ToolLayer[Tool layer]
+        Resolver[ToolResolver]
+        Builtins[Built-in tools]
+        MCP[MCP servers]
+        Skills[Skill protocols]
+    end
 
-### 2. WaveExecutor (`topologies/wave_executor.py`)
+    subgraph State[State and observability]
+        Sessions[Session manager]
+        Topologies[Topology cache]
+        Artifacts[Outputs and checkpoints]
+        Logs[Logs and traces]
+    end
 
-**Responsibility:** Executes graph topologies with wave-based parallelism.
-
-- `topological_waves()` splits graph into independent execution waves
-- Each wave runs concurrently via `dspy.asyncify` + `asyncio.gather`
-- `_NodeModule` wraps `NodeDef` into role-specific DSPy modules
-- Nodes executed via DSPy module wrapping with role-specific logic
-- MCP tools resolved per-node via `MCPClientManager`
-- Checkpointed after every wave via `Session.save_state()`
-
-**Roles:** `predict`, `chain_of_thought`, `react`, `human_in_loop`, `recursive`
-
-### 3. TriangulatedEvaluator (`runtime/evaluator.py`)
-
-- **Level 0**: Rule-based constraint checking (cost, time limits)
-- **Level 1**: Semantic evaluation via `dspy.ChainOfThought` scoring (0.0–1.0)
-- **Level 2**: Human escalation flag when confidence < threshold
-
-### 4. AutoHealer (`runtime/auto_healer.py`)
-
-- `dspy.ChainOfThought` module diagnosing failures
-- Strategies: `retry`, `re-route`, `re-weave`
-- Circuit breaker: max 10 global heals, max 3 per-node retries
-
-### 5. Core (`core.py`)
-
-- `Arachne(dspy.Module)` composes Weaver → Runner → Evaluator
-- Self-healing loop with strategy pattern application
-- Topology caching by SHA-256 goal hash
-
-## Data Flow
-
-### Goal → Execution
-
-```
-1. CLI: arachne run "Find me..."
-         │
-         ▼
-2. Arachne.weave(goal)
-         │
-    ┌────┴────┐
-    ▼         ▼
-GraphWeaver  GoalDefinition
-    │         │
-    ▼         ▼
-GraphTopology ◀────────────── (constraints, success_criteria)
-    │
-    ▼
-3. provision_graph() - Create missing tools/skills
-    │
-    ▼
-4. WaveExecutor.execute() - Run waves
-    │
-    ▼
-5. TriangulatedEvaluator.evaluate() - Verify output
-    │
-    ▼
-6. Check results:
-   - Success → Return RunResult
-   - Failure → AutoHealer → Retry/Re-Route/Re-Weave
+    CLI --> Intake
+    Project --> Intake
+    Human --> Intake
+    Intake --> Weaver
+    Weaver --> Topologies
+    Weaver --> Provision
+    Provision --> Executor
+    Executor --> Resolver
+    Resolver --> Builtins
+    Resolver --> MCP
+    Resolver --> Skills
+    Executor --> Evaluator
+    Evaluator -->|pass| Sessions
+    Evaluator -->|repair needed| Healer
+    Healer -->|retry or re-route| Executor
+    Healer -->|re-weave| Weaver
+    Executor --> Artifacts
+    Executor --> Logs
 ```
 
-### Context Propagation
+## Execution lifecycle
 
-```
-Goal/Inputs
-    │
-    ▼
-Wave N: Node A ──output: "x"──▶ all_results["a"] = {...}
-                              all_results["output_field"] = "x"
-    │
-    ▼
-Wave N+1: Node B ──input: "output_field"──▶ all_results.get("output_field")
+```mermaid
+sequenceDiagram
+    actor User
+    participant CLI as CLI
+    participant Core as Arachne core
+    participant Weaver as GraphWeaver
+    participant Exec as WaveExecutor
+    participant Eval as Evaluator
+    participant Heal as AutoHealer
+    participant Store as Session store
+
+    User->>CLI: arachne run "goal"
+    CLI->>Core: GoalDefinition
+    Core->>Weaver: weave topology
+    Weaver-->>Core: GraphTopology
+    Core->>Store: persist graph and inputs
+    Core->>Exec: execute waves
+    Exec->>Store: persist node outputs and checkpoints
+    Exec-->>Core: RunResult
+    Core->>Eval: evaluate result
+    alt acceptable result
+        Eval-->>Core: pass
+        Core->>Store: mark completed
+        Core-->>CLI: render final output
+    else failed or low confidence
+        Eval-->>Core: fail
+        Core->>Heal: diagnose failure
+        Heal-->>Core: retry, re-route, or re-weave
+        Core->>Exec: continue repaired run
+    end
 ```
 
-## Module Dependencies
+## Core components
 
-```
-cli/main.py
-  │
-  ├─▶ core.py (Arachne)
-  │     │
-  │     ├─▶ config.py (Settings)
-  │     │
-  │     ├─▶ topologies/weaver.py (GraphWeaver)
-  │     │
-  │     ├─▶ topologies/wave_executor.py (WaveExecutor)
-  │     │     ├── tools/system/shell.py (resolve_tool)
-  │     │     ├── runtime/mcp_manager.py
-  │     │     └── skills/registry.py
-  │     │
-  │     ├─▶ runtime/evaluator.py
-  │     ├─▶ runtime/auto_healer.py
-  │     └─▶ sessions/manager.py
+### GraphWeaver
+
+`GraphWeaver` transforms a goal into a `GraphTopology`. It defines nodes, dependencies, roles, inputs, outputs, required tools, and success criteria.
+
+Responsibilities:
+
+- convert natural-language goals into structured graph topology
+- keep the graph acyclic and executable
+- choose node roles such as `predict`, `chain_of_thought`, `react`, `human_in_loop`, or `recursive`
+- produce topology metadata for caching and review
+
+### WaveExecutor
+
+`WaveExecutor` runs topology nodes in topological waves. Nodes in the same wave do not depend on each other and can run concurrently.
+
+```mermaid
+flowchart LR
+    subgraph Wave1[Wave 1]
+        A[Search sources]
+        B[Inspect local files]
+    end
+
+    subgraph Wave2[Wave 2]
+        C[Fetch documents]
+        D[Summarise repository context]
+    end
+
+    subgraph Wave3[Wave 3]
+        E[Synthesise answer]
+    end
+
+    A --> C
+    B --> D
+    C --> E
+    D --> E
 ```
 
-## File Map
+Execution rules:
 
+- a node starts only when all upstream dependencies have completed
+- wave failures prevent dependent downstream nodes from running blindly
+- checkpointing captures progress after waves
+- large tool outputs use the pointer pattern instead of overflowing model context
+
+### ToolResolver
+
+`ToolResolver` normalises access to tools from different sources.
+
+```mermaid
+flowchart TD
+    Node[Node request] --> Resolver[ToolResolver]
+    Resolver --> Builtins[Built-in Python tools]
+    Resolver --> MCP[MCP server tools]
+    Resolver --> Human[Human-in-loop tools]
+    Resolver --> Skills[Skill protocol context]
 ```
+
+This keeps node execution code independent of whether a tool is local, protocol-backed, or human-mediated.
+
+### TriangulatedEvaluator
+
+The evaluator combines multiple checks rather than trusting a single LLM judgement.
+
+```mermaid
+flowchart TD
+    Result[Run result] --> Rules[Level 0: deterministic rules]
+    Rules --> Semantic[Level 1: semantic scoring]
+    Semantic --> Confidence{Confidence high enough?}
+    Confidence -->|yes| Pass[Accept output]
+    Confidence -->|no| Human[Level 2: human escalation]
+    Human --> Decision{Approved?}
+    Decision -->|yes| Pass
+    Decision -->|no| Repair[Send to AutoHealer]
+```
+
+### AutoHealer
+
+`AutoHealer` diagnoses failed runs and chooses a repair strategy.
+
+| Strategy | Use when | Typical action |
+|---|---|---|
+| Retry | transient tool or network issue | re-run the failed node |
+| Re-route | node instruction or tool choice is weak | adjust route or inputs |
+| Re-weave | graph structure is wrong | generate a revised topology |
+
+Circuit breakers prevent endless repair loops.
+
+## Data model
+
+```mermaid
+classDiagram
+    class GoalDefinition {
+        goal
+        constraints
+        success_criteria
+    }
+
+    class GraphTopology {
+        graph_id
+        nodes
+        edges
+        metadata
+    }
+
+    class NodeDef {
+        id
+        role
+        inputs
+        outputs
+        tools
+    }
+
+    class EdgeDef {
+        source
+        target
+    }
+
+    class RunResult {
+        session_id
+        status
+        outputs
+        failures
+    }
+
+    GoalDefinition --> GraphTopology
+    GraphTopology --> NodeDef
+    GraphTopology --> EdgeDef
+    GraphTopology --> RunResult
+```
+
+## Session layout
+
+Each run persists enough information to inspect, resume, and audit the graph.
+
+```mermaid
+flowchart TD
+    Session[session directory] --> Inputs[inputs.json]
+    Session --> Graph[graph.json]
+    Session --> State[state.json]
+    Session --> Outputs[outputs]
+    Session --> Checkpoints[checkpoints]
+    Session --> Logs[logs]
+```
+
+Typical contents:
+
+| Path | Purpose |
+|---|---|
+| `inputs.json` | original goal, context, and run options |
+| `graph.json` | woven topology |
+| `state.json` | node status and execution state |
+| `outputs/` | durable node artefacts |
+| `checkpoints/` | recovery snapshots |
+| `logs/` | execution diagnostics |
+
+## Configuration flow
+
+```mermaid
+flowchart TD
+    Env[Shell environment and local .env] --> Settings[Settings loader]
+    Project[Project arachne.yaml] --> Settings
+    User[User defaults] --> Settings
+    Defaults[Code defaults] --> Settings
+    Settings --> Runtime[Runtime configuration]
+    Runtime --> DSPy[DSPy configuration]
+    Runtime --> Tools[Tool availability]
+    Runtime --> Sessions[Session paths]
+```
+
+Configuration is intentionally split between private credentials and structured settings. Runtime values are merged with environment and local `.env` values taking priority.
+
+## Trust boundaries
+
+Arachne executes tools and model-generated plans, so trust boundaries matter.
+
+```mermaid
+flowchart LR
+    UserGoal[User goal] --> Runtime[Arachne runtime]
+    Runtime --> BuiltinTools[Built-in tools]
+    Runtime --> MCPTools[MCP tools]
+    Runtime --> Files[Local files]
+    Runtime --> HumanGate[Human approval]
+
+    classDef untrusted fill:#ffe6e6,stroke:#cc0000,color:#111;
+    classDef guarded fill:#fff4cc,stroke:#cc8a00,color:#111;
+    classDef trusted fill:#e6f4ea,stroke:#1f7a1f,color:#111;
+
+    class UserGoal untrusted;
+    class Runtime guarded;
+    class BuiltinTools,MCPTools,Files guarded;
+    class HumanGate trusted;
+```
+
+Guidelines:
+
+- treat user goals and model-generated plans as untrusted inputs
+- keep tool execution explicit and auditable
+- prefer protocol-backed tools with narrow permissions
+- require human approval for destructive or high-impact operations
+- preserve session records for post-run review
+
+## Source map
+
+```text
 src/arachne/
-├── cli/main.py         # Typer CLI: run, weave, resume, ls, clean, graphs, compile-weaver
-├── cli/display.py      # CLI display utilities
-├── core.py             # Arachne top-level module
-├── config.py           # Pydantic settings (LLM, Langfuse, cost, MCP...)
-├── topologies/
-│   ├── schema.py       # All graph topology Pydantic models
-│   ├── weaver.py       # GraphWeaver -- goal → topology
-│   ├── wave_executor.py # WaveExecutor -- wave-based execution
-│   ├── tool_resolver.py # ToolResolver -- tool/MCP resolution
-│   └── node_executor.py # NodeExecutor -- per-node execution
-├── runtime/
-│   ├── evaluator.py    # TriangulatedEvaluator
-│   ├── auto_healer.py  # AutoHealer
-│   ├── provision.py    # Auto-generate missing tools/skills
-│   ├── mcp_manager.py  # MCP per-session manager
-│   ├── knowledge_store.py # Persistent knowledge store
-│   └── context_store.py   # Thread-local context store
-├── tools/
-│   ├── web/
-│   │   ├── duckduckgo_search.py  # DuckDuckGo search
-│   │   └── web_fetch.py          # Web content fetch
-│   ├── system/
-│   │   ├── shell.py              # Shell command execution
-│   │   ├── file_read.py          # Read files
-│   │   └── file_write.py         # Write files
-│   ├── human/
-│   │   ├── request_context.py    # Request context from user
-│   │   └── request_approval.py   # Request approval from user
-│   ├── lifecycle/
-│   │   └── checkpoints.py        # Checkpoint save/load/list
-│   ├── memory/
-│   │   └── operations.py         # Write/search memory
-│   └── spillover.py              # Pointer pattern wrapper
-├── sessions/
-│   └── manager.py      # Session class
+├── cli/                 # Typer CLI and terminal display
+├── core.py              # Top-level Arachne module
+├── execution/           # orchestration and execution manager
+├── optimizers/          # DSPy optimiser support
+├── runtime/             # evaluation, healing, provisioning, observability
+├── sessions/            # durable session management
+├── skills/              # reusable expert protocols
+├── tools/               # built-in and protocol-backed tools
+└── topologies/          # graph schema, weaving, node and wave execution
 ```
 
-## Key Design Patterns
+## Design patterns
 
-### Pointer Pattern
+### Graph-first planning
 
-Tool outputs > 30KB are truncated with a preview and saved to disk. Downstream nodes can `read_file()` the full result. Prevents context window overflow.
+Planning output is a serialisable topology, not an opaque prompt. This makes runs inspectable and reusable.
 
-### Wave Execution
+### Pointer pattern
 
-Graphs split into topological waves via Kahn's algorithm. Independent nodes in the same wave execute concurrently. Failure in a wave skips all downstream nodes.
+Large outputs are written to disk and replaced with a compact pointer plus preview. Downstream nodes can read the full artefact when needed.
 
-### Self-Evaluation
+### Wave execution
 
-Nodes use `dspy.ChainOfThought` for self-evaluation with scoring. The `SelfEvaluator` module scores quality, and the system auto-retries if below threshold.
+Topological waves provide concurrency without violating dependencies.
 
-### Topology Caching
+### Triangulated evaluation
 
-Previously woven graphs cached by SHA-256 hash of goal. Identical goals reuse cached topologies without LLM calls.
+Arachne combines deterministic, semantic, and human checks to avoid trusting a single judgement path.
 
-### Trust Boundaries
+### Repair loop
 
-| Component | Trust Level |
-|-----------|-------------|
-| User Goal Input | Untrusted |
-| LLM-Generated Code | Untrusted |
-| MCP Server Commands | Semi-trusted |
-| Shell Exec | CRITICAL RISK (shell=True) |
-| Custom Tools (Python) | High Risk |
-| Session Data | Internal |
+Failed runs are not simply restarted. The runtime chooses the smallest useful repair: retry, re-route, or re-weave.
 
-## Configuration
+## Related docs
 
-Arachne uses a dual-file hierarchy (highest to lowest priority):
-
-1. **Environment Variables**: Shell environment and `.env` file for **secrets** (API keys).
-2. **YAML Config (`arachne.yaml`)**: Structured, versioned **settings** (budgets, model IDs).
-3. **Global Config (`~/.arachne/config.yaml`)**: User-level defaults.
-4. **Code Defaults**: Built-in fallback values.
-
-The `quickstart.sh` script generates both files and ensures secrets are kept out of the YAML file.
-
-## Known Architecture Issues
-
-See `ROADMAP.md` and `SECURITY.md` for prioritized improvements.
-
-- Remediate systemic violation of `` rule
-- Extract `_execute()` monolith into Strategy pattern classes
-- Unify MCP managers (drop per-session if singleton is better, or vice versa)
-- Add `_validate_topology()` to GraphTopology (input validation)
+- [Getting started](../tutorials/getting-started.md)
+- [CLI reference](../reference/cli.md)
+- [DSPy-native concepts](../key_concepts/dspy-native.md)
+- [Pointer pattern](../key_concepts/pointer-pattern.md)
