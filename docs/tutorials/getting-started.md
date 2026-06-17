@@ -1,67 +1,190 @@
-# Getting Started with Arachne
+# Getting started with Arachne
 
-Arachne is an agentic research and execution engine. This guide will help you set up and run your first agent in minutes.
+This tutorial takes you from a fresh clone to your first executed agent graph.
+
+Arachne turns a natural-language goal into a typed graph, executes the graph in dependency-aware waves, stores the session, and repairs the run when evaluation fails.
+
+```mermaid
+flowchart LR
+    A[Install] --> B[Configure]
+    B --> C[Run a goal]
+    C --> D[Inspect output]
+    D --> E[Reuse or resume]
+```
 
 ## Prerequisites
 
-- **Python 3.11+**
-- **[uv](https://github.com/astral-sh/uv)** (Recommended for speed and reliability)
+- Python **3.11 or newer**
+- [`uv`](https://github.com/astral-sh/uv)
+- Access to at least one LLM provider or a local Ollama model
+- Git
 
-## Step 1: Clone and Setup
+## 1. Clone the repository
 
 ```bash
 git clone https://github.com/Strategic-Automation/arachne.git
 cd arachne
 ```
 
-## Step 2: Run the Quickstart Script
-
-The interactive setup wizard handles dependency installation, tool provisioning, and configuration.
+## 2. Run the quickstart wizard
 
 ```bash
 ./quickstart.sh
 ```
 
-Follow the prompts to select your LLM provider. If you're new to Arachne, **Ollama** is recommended for 100% local, free execution (requires [Ollama](https://ollama.com) to be installed and running).
+The wizard helps with:
 
-## Step 3: Understanding Configuration
+1. dependency installation
+2. provider selection
+3. local runtime settings
+4. tool availability checks
+5. first-run guidance
 
-The quickstart script generates two local files for you:
-
-1.  **`.env`**: Stores your **secrets** (e.g., `LLM_API_KEY`). This file is git-ignored for your security.
-2.  **`arachne.yaml`**: Stores your **settings** (e.g., model name, cost budgets). This is used by the Python framework and CLI by default.
-
-## Step 4: Run Your First Agent
-
-Once the quickstart completes, describe any goal in natural language:
+If you prefer manual setup:
 
 ```bash
-# Example research goal
-uv run arachne run "Research the current state of humanoid robotics in 2025"
+uv sync --all-groups
 ```
 
-### 🤝 Best Practice: Interactive Guidance
+## 3. Understand the local files
 
-If your goal is complex or you want to ensure the agent stays on track, use the **`--interactive`** (or `-i`) flag:
+Arachne keeps private credentials separate from structured settings.
+
+```mermaid
+flowchart TD
+    Env[Local .env] --> Settings[Settings loader]
+    Project[arachne.yaml] --> Settings
+    Defaults[Built-in defaults] --> Settings
+    Settings --> Run[Runtime configuration]
+```
+
+| File | Purpose | Commit it? |
+|---|---|---|
+| `.env` | private provider credentials and local overrides | No |
+| `arachne.yaml` | model, budget, observability, and session settings | Usually no |
+| `.venv/` | local virtual environment | No |
+
+## 4. Run your first graph
 
 ```bash
-uv run arachne run "Research a company" -i
+uv run arachne run "Research the current state of humanoid robotics"
 ```
 
-In interactive mode, Arachne will:
-1.  **Clarify**: Ask follow-up questions if your goal is too vague.
-2.  **Review**: Show you the planned graph before starting.
-3.  **Approve**: Pause for feedback if results seem marginal.
-4.  **Final Gate**: Ask if you're happy with the output before finishing.
+Arachne will:
 
-## How It Works
+1. parse the goal
+2. weave a graph topology
+3. provision tools and skills
+4. execute nodes in waves
+5. evaluate the result
+6. persist the session
 
-1.  **Weave**: Arachne uses an LLM to "weave" an agent graph (DAG) tailored to your goal.
-2.  **Execute**: The graph runs in topological waves, executing nodes in parallel where possible.
-3.  **Heal**: If a node fails or produces low-quality data, Arachne automatically diagnoses and repairs the graph.
+```mermaid
+sequenceDiagram
+    actor You
+    participant CLI as arachne CLI
+    participant Weaver as GraphWeaver
+    participant Exec as WaveExecutor
+    participant Eval as Evaluator
+    participant Store as Session store
 
-## Next Steps
+    You->>CLI: run "Research humanoid robotics"
+    CLI->>Weaver: build topology
+    Weaver-->>CLI: graph
+    CLI->>Exec: execute graph
+    Exec->>Store: save checkpoints and outputs
+    Exec-->>Eval: result
+    Eval-->>CLI: pass or repair request
+    CLI-->>You: final report
+```
 
-- Explore the [Architecture Deep-Dive](../explanation/architecture.md)
-- Check the [CLI Reference](../reference/cli.md) for more commands
-- Learn how to add [Custom Tools](../guides/developer-guide.md)
+## 5. Use interactive mode for complex goals
+
+Interactive mode gives you a chance to clarify and review the generated plan before execution.
+
+```bash
+uv run arachne run "Research a company" --interactive
+```
+
+Use it when:
+
+- the goal is broad or ambiguous
+- you want to inspect the graph before it runs
+- the output affects a real decision
+- you want to steer the plan while developing a workflow
+
+## 6. Inspect your session
+
+List recent runs:
+
+```bash
+uv run arachne ls -n 5
+```
+
+Read the latest result:
+
+```bash
+uv run arachne cat last
+```
+
+List cached graph topologies:
+
+```bash
+uv run arachne graphs
+```
+
+## 7. Reuse or resume work
+
+Re-run a successful topology against a fresh session:
+
+```bash
+uv run arachne rerun <graph-id>
+```
+
+Resume a failed or interrupted session:
+
+```bash
+uv run arachne resume <session-id>
+```
+
+```mermaid
+flowchart TD
+    Session[Saved session] --> Decision{What do you need?}
+    Decision -->|view output| Cat[arachne cat]
+    Decision -->|resume failure| Resume[arachne resume]
+    Decision -->|reuse topology| Rerun[arachne rerun]
+    Decision -->|inspect graph| Show[arachne show]
+```
+
+## Example workflow
+
+```bash
+# 1. Run a research goal
+uv run arachne run "Map the open-source agent runtime landscape"
+
+# 2. Inspect the result
+uv run arachne cat last
+
+# 3. List the graph cache
+uv run arachne graphs
+
+# 4. Reuse a good topology for a related goal
+uv run arachne rerun <graph-id> --goal "Map the open-source evaluation framework landscape"
+```
+
+## Troubleshooting
+
+| Symptom | Try this |
+|---|---|
+| `uv` is missing | Install uv, then rerun `./quickstart.sh` |
+| provider credential missing | update your local `.env` and rerun the command |
+| no cached graphs | run `arachne weave` or `arachne run` first |
+| session not found | run `arachne ls` and copy the session id exactly |
+| output too large | check session outputs and pointer files in the run directory |
+
+## Next steps
+
+- Read the [Architecture deep dive](../explanation/architecture.md)
+- Browse the [CLI reference](../reference/cli.md)
+- Learn how to add [custom skills](../guides/creating-skills.md)
+- Review the [developer guide](../guides/developer-guide.md)
