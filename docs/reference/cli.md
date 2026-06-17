@@ -39,8 +39,8 @@ arachne <command> [arguments] [options]
 | `show` | visualise a session or graph | inspect topology structure |
 | `rerun` | execute a previous topology | reuse a proven plan |
 | `resume` | continue a failed or interrupted session | recover work |
-| `clean` | remove old sessions | maintain local state |
-| `compile-weaver` | compile GraphWeaver examples | improve topology generation |
+| `clean` | remove old or failed sessions with filters | maintain local state |
+| `compile-weaver` | compile GraphWeaver sub-predictors | improve topology generation |
 | `config` | inspect or update local settings | manage runtime configuration |
 
 ## Core workflow commands
@@ -190,10 +190,14 @@ flowchart TD
 
 ### `clean`
 
-Remove old session data.
+Remove old or failed session data. The command only deletes sessions when a filter is supplied.
 
 ```bash
-uv run arachne clean
+# Delete sessions older than 30 days
+uv run arachne clean --older-than 30
+
+# Delete failed sessions
+uv run arachne clean --failed
 ```
 
 Use with care when you rely on session history for audit or reproducibility.
@@ -210,19 +214,19 @@ The exact supported actions may evolve while Arachne is in beta.
 
 ### `compile-weaver`
 
-Compile the GraphWeaver module with DSPy optimisers.
+Compile the GraphWeaver sub-predictors with BootstrapFewShot. The command compiles the weave, selector, and clarifier predictors and saves the compiled demos for runtime loading.
 
 ```bash
-uv run arachne compile-weaver --trainset examples/weaver_trainset.json
+uv run arachne compile-weaver --teacher openrouter/qwen/qwen3.6-plus:free --max-demos 4
 ```
 
 Options:
 
 | Option | Meaning |
 |---|---|
-| `--trainset` | JSON training examples |
-| `--optimizer` | DSPy optimiser name |
-| `--output` | compiled module output path |
+| `--teacher`, `-t` | teacher model for bootstrapping |
+| `--max-demos`, `-n` | maximum number of bootstrapped demonstrations |
+| `--output-dir`, `-o` | output directory for compiled predictors |
 
 ## Recommended workflows
 
