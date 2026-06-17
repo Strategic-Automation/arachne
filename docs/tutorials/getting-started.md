@@ -5,11 +5,16 @@ This tutorial takes you from a fresh clone to your first executed agent graph.
 Arachne turns a natural-language goal into a typed graph, executes the graph in dependency-aware waves, stores the session, and repairs the run when evaluation fails.
 
 ```mermaid
-flowchart LR
-    A[Install] --> B[Configure]
-    B --> C[Run a goal]
-    C --> D[Inspect output]
-    D --> E[Reuse or resume]
+graph LR
+    A[Install]
+    B[Configure]
+    C[Run]
+    D[Inspect]
+    E[Reuse]
+    A --> B
+    B --> C
+    C --> D
+    D --> E
 ```
 
 ## Prerequisites
@@ -51,16 +56,19 @@ uv sync --all-groups
 Arachne keeps private credentials separate from structured settings.
 
 ```mermaid
-flowchart TD
-    Env[Local .env] --> Settings[Settings loader]
-    Project[arachne.yaml] --> Settings
-    Defaults[Built-in defaults] --> Settings
-    Settings --> Run[Runtime configuration]
+graph TD
+    A[Runtime overrides]
+    B[Selected YAML]
+    C[Defaults]
+    D[Settings]
+    A --> D
+    B --> D
+    C --> D
 ```
 
 | File | Purpose | Commit it? |
 |---|---|---|
-| `.env` | private provider credentials and local overrides | No |
+| local override file | private provider credentials and local overrides | No |
 | `arachne.yaml` | model, budget, observability, and session settings | Usually no |
 | `.venv/` | local virtual environment | No |
 
@@ -80,22 +88,18 @@ Arachne will:
 6. persist the session
 
 ```mermaid
-sequenceDiagram
-    actor You
-    participant CLI as arachne CLI
-    participant Weaver as GraphWeaver
-    participant Exec as WaveExecutor
-    participant Eval as Evaluator
-    participant Store as Session store
-
-    You->>CLI: run "Research humanoid robotics"
-    CLI->>Weaver: build topology
-    Weaver-->>CLI: graph
-    CLI->>Exec: execute graph
-    Exec->>Store: save checkpoints and outputs
-    Exec-->>Eval: result
-    Eval-->>CLI: pass or repair request
-    CLI-->>You: final report
+graph TD
+    A[Goal]
+    B[Weave graph]
+    C[Execute graph]
+    D[Save session]
+    E[Evaluate]
+    F[Render output]
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
 ```
 
 ## 5. Use interactive mode for complex goals
@@ -148,12 +152,16 @@ uv run arachne resume <session-id>
 ```
 
 ```mermaid
-flowchart TD
-    Session[Saved session] --> Decision{What do you need?}
-    Decision -->|view output| Cat[arachne cat]
-    Decision -->|resume failure| Resume[arachne resume]
-    Decision -->|reuse topology| Rerun[arachne rerun]
-    Decision -->|inspect graph| Show[arachne show]
+graph TD
+    A[Saved session]
+    B[View output]
+    C[Resume]
+    D[Reuse graph]
+    E[Inspect graph]
+    A --> B
+    A --> C
+    A --> D
+    A --> E
 ```
 
 ## Example workflow
@@ -177,7 +185,7 @@ uv run arachne rerun <graph-id> --goal "Map the open-source evaluation framework
 | Symptom | Try this |
 |---|---|
 | `uv` is missing | Install uv, then rerun `./quickstart.sh` |
-| provider credential missing | update your local `.env` and rerun the command |
+| provider credential missing | update your local settings and rerun the command |
 | no cached graphs | run `arachne weave` or `arachne run` first |
 | session not found | run `arachne ls` and copy the session id exactly |
 | output too large | check session outputs and pointer files in the run directory |

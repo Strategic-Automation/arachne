@@ -3,14 +3,17 @@
 Arachne exposes a Typer-based CLI for weaving, executing, inspecting, reusing, and recovering agent graphs.
 
 ```mermaid
-flowchart LR
-    Run[run] --> Session[session]
-    Weave[weave] --> Graph[graph cache]
-    Session --> Cat[cat]
-    Session --> Resume[resume]
-    Graph --> Show[show]
-    Graph --> Rerun[rerun]
-    Session --> Clean[clean]
+graph LR
+    A[run]
+    B[session]
+    C[cat]
+    D[resume]
+    E[graphs]
+    F[rerun]
+    A --> B
+    B --> C
+    B --> D
+    E --> F
 ```
 
 ## Global pattern
@@ -70,14 +73,21 @@ Common options:
 Runtime flow:
 
 ```mermaid
-flowchart TD
-    Goal[Goal text] --> Weave[Weave topology]
-    Weave --> Provision[Provision tools]
-    Provision --> Execute[Execute waves]
-    Execute --> Evaluate[Evaluate result]
-    Evaluate -->|pass| Output[Render output]
-    Evaluate -->|fail| Heal[Heal and retry]
-    Heal --> Execute
+graph TD
+    A[Goal]
+    B[Weave]
+    C[Provision]
+    D[Execute]
+    E[Evaluate]
+    F[Output]
+    G[Heal]
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    E --> G
+    G --> D
 ```
 
 ### `weave`
@@ -174,16 +184,22 @@ uv run arachne resume <session-id>
 Recovery flow:
 
 ```mermaid
-flowchart TD
-    Failed[Failed or interrupted session] --> Load[Load state]
-    Load --> Diagnose[Diagnose failure]
-    Diagnose --> Strategy{Repair strategy}
-    Strategy -->|retry| Retry[Retry node]
-    Strategy -->|re-route| Reroute[Adjust route]
-    Strategy -->|re-weave| Reweave[Build new topology]
-    Retry --> Continue[Continue execution]
-    Reroute --> Continue
-    Reweave --> Continue
+graph TD
+    A[Failed session]
+    B[Load state]
+    C[Diagnose]
+    D[Retry]
+    E[Re route]
+    F[Re weave]
+    G[Continue]
+    A --> B
+    B --> C
+    C --> D
+    C --> E
+    C --> F
+    D --> G
+    E --> G
+    F --> G
 ```
 
 ## Maintenance commands
@@ -214,10 +230,10 @@ The exact supported actions may evolve while Arachne is in beta.
 
 ### `compile-weaver`
 
-Compile the GraphWeaver sub-predictors with BootstrapFewShot. The command compiles the weave, selector, and clarifier predictors and saves the compiled demos for runtime loading.
+Compile the GraphWeaver sub-predictors with BootstrapFewShot.
 
 ```bash
-uv run arachne compile-weaver --teacher openrouter/qwen/qwen3.6-plus:free --max-demos 4
+uv run arachne compile-weaver --teacher <model> --max-demos 4
 ```
 
 Options:

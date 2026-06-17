@@ -39,67 +39,49 @@ Most agent systems are prompt chains wrapped in orchestration code. They are har
 ## Runtime lifecycle
 
 ```mermaid
-flowchart TD
-    A[User goal] --> B{Interactive mode?}
-    B -- yes --> C[Clarify goal and constraints]
-    B -- no --> D[Build GoalDefinition]
+graph TD
+    A[User goal]
+    B[Clarify goal]
+    C[Weave graph]
+    D[Provision tools]
+    E[Execute waves]
+    F[Evaluate result]
+    G[Return result]
+    H[Heal run]
+    A --> B
+    B --> C
     C --> D
-    D --> E[GraphWeaver creates GraphTopology]
-    E --> F[Provision tools and skills]
-    F --> G[Execute graph in waves]
-    G --> H[Triangulated evaluation]
-    H -->|passes| I[Persist session and return result]
-    H -->|fails| J[AutoHealer diagnoses issue]
-    J --> K{Repair strategy}
-    K -->|retry| G
-    K -->|re-route| G
-    K -->|re-weave| E
+    D --> E
+    E --> F
+    F --> G
+    F --> H
+    H --> C
 ```
 
 ## Architecture at a glance
 
 ```mermaid
-flowchart LR
-    subgraph User[User surface]
-        CLI[Typer CLI]
-        Files[Local project files]
-    end
-
-    subgraph Runtime[Arachne runtime]
-        Core[Arachne core]
-        Weaver[GraphWeaver]
-        Executor[WaveExecutor]
-        Evaluator[TriangulatedEvaluator]
-        Healer[AutoHealer]
-    end
-
-    subgraph Tooling[Tool layer]
-        Resolver[ToolResolver]
-        Builtins[Built-in tools]
-        MCP[MCP servers]
-        Skills[Skill library]
-    end
-
-    subgraph State[State and observability]
-        Sessions[Session store]
-        Cache[Topology cache]
-        Logs[Logs and traces]
-    end
-
-    CLI --> Core
-    Files --> Core
-    Core --> Weaver
-    Weaver --> Executor
-    Executor --> Resolver
-    Resolver --> Builtins
-    Resolver --> MCP
-    Resolver --> Skills
-    Executor --> Evaluator
-    Evaluator -->|repair needed| Healer
-    Healer --> Weaver
-    Core --> Sessions
-    Weaver --> Cache
-    Executor --> Logs
+graph LR
+    A[CLI]
+    B[Arachne core]
+    C[GraphWeaver]
+    D[WaveExecutor]
+    E[ToolResolver]
+    F[Built in tools]
+    G[MCP tools]
+    H[Evaluator]
+    I[AutoHealer]
+    J[Session store]
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    E --> G
+    D --> H
+    H --> I
+    I --> C
+    B --> J
 ```
 
 ---
