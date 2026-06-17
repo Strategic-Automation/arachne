@@ -1,6 +1,16 @@
 """Arachne -- DSPy-native runtime harness for production AI agents."""
 
-from arachne.config import Settings
+from arachne import config as _config
+
+
+def _get_settings_deep_copy() -> _config.Settings:
+    """Return an isolated settings model from the cached base instance."""
+    return _config._get_settings_cached().model_copy(deep=True)
+
+
+_config.get_settings = _get_settings_deep_copy
+Settings = _config.Settings
+
 from arachne.core import Arachne
 from arachne.runtime.evaluator import FailureEvaluator
 from arachne.topologies.schema import (
