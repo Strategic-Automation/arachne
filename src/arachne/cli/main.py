@@ -564,6 +564,7 @@ def list_graphs() -> None:
     table.add_column("Objective/Goal")
     table.add_column("Nodes", justify="right")
 
+    rows_added = 0
     for p in cache_dir.iterdir():
         if p.suffix != ".json":
             continue
@@ -575,8 +576,15 @@ def list_graphs() -> None:
                 topo.objective[:60] + "..." if len(topo.objective) > 60 else topo.objective,
                 str(len(topo.nodes)),
             )
+            rows_added += 1
         except Exception:
             continue
+
+    if rows_added == 0:
+        console.print(
+            "[dim]No valid cached graphs found. Generate one with [bold white]arachne weave[/bold white] or [bold white]arachne run[/bold white].[/dim]"
+        )
+        return
 
     console.print(table)
     console.print("\n[dim]Use [bold white]arachne show <graph-id>[/bold white] to view details.[/dim]")
@@ -707,7 +715,10 @@ def cat_session(
     graph_path = session_path / "graph.json"
 
     if not state_path.exists():
-        console.print(f"[bold red]Error:[/bold red] No results found for session '{session_id}'.")
+        console.print(
+            f"[bold red]Error:[/bold red] No results found for session '{session_id}'.\n"
+            "[dim]Use [bold white]arachne ls[/bold white] to see available sessions.[/dim]"
+        )
         return
 
     try:
