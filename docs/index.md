@@ -7,16 +7,16 @@ The docs follow the [Diátaxis](https://diataxis.fr/) structure so readers can c
 ## Start here
 
 ```mermaid
-flowchart TD
-    A[New to Arachne?] --> B[Getting started]
-    A --> C[Architecture deep dive]
-    A --> D[CLI reference]
-    A --> E[Developer guide]
-
-    B --> F[Run your first goal]
-    C --> G[Understand graph weaving and healing]
-    D --> H[Find exact commands]
-    E --> I[Contribute tools, skills, and tests]
+graph TD
+    A[New reader]
+    B[Getting started]
+    C[Architecture]
+    D[CLI reference]
+    E[Developer guide]
+    A --> B
+    A --> C
+    A --> D
+    A --> E
 ```
 
 | Reader goal | Recommended page |
@@ -31,36 +31,14 @@ flowchart TD
 ## Documentation map
 
 ```mermaid
-flowchart LR
-    subgraph Tutorials
-        T1[Getting started]
-    end
-
-    subgraph Guides
-        G1[Developer guide]
-        G2[Testing guide]
-        G3[Creating skills]
-        G4[MCP setup]
-    end
-
-    subgraph Explanation
-        E1[Architecture]
-        E2[Graph orchestration]
-        E3[MCP integration]
-        E4[Self-healing]
-    end
-
-    subgraph Reference
-        R1[CLI reference]
-        R2[Schema reference]
-        R3[Coding standards]
-        R4[Security policy]
-    end
-
-    T1 --> G1
-    G1 --> E1
-    E1 --> R1
-    E1 --> R2
+graph LR
+    A[Tutorials]
+    B[Guides]
+    C[Explanation]
+    D[Reference]
+    A --> B
+    B --> C
+    C --> D
 ```
 
 ## Tutorials
@@ -78,7 +56,7 @@ flowchart LR
 
 - [Architecture](explanation/architecture.md) — system design, graph lifecycle, data flow, and trust boundaries.
 - [Architecture overview](architecture/overview.md) — high-level runtime view.
-- [Graph orchestration](architecture/graph-orchestration.md) — topology weaving and wave execution.
+- [Graph orchestration](architecture/graph-orchestration.md) — topology weaving and execution.
 - [MCP integration](architecture/mcp-integration.md) — tool integration design.
 - [Self-healing](architecture/self-healing.md) — AutoHealer and recovery strategies.
 
@@ -93,10 +71,10 @@ flowchart LR
 - [CLI reference](reference/cli.md) — command syntax, options, and examples.
 - [Schema reference](reference/schema.md) — Pydantic models and topology contracts.
 - [Coding standards](reference/coding-standards.md) — style, linting, and review expectations.
-- [Security policy](reference/security.md) — threat model and disclosure process.
+- [Security Policy](reference/security.md) — policy and disclosure process.
 
 ## Project resources
 
 - [README](../README.md) — public project landing page.
 - [AGENTS.md](../AGENTS.md) — AI coding assistant context.
-- [ROADMAP.md](../ROADMAP.md) — project vision and milestone plan.
+- [ROADMAP.md](../ROADMAP.md) — project vision, phases, and milestones.
