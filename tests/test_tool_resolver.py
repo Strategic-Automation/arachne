@@ -242,6 +242,7 @@ class TestPathConstruction:
 
         assert "shell_exec" in _BUILTIN_TOOLS
         assert "read_file" in _BUILTIN_TOOLS
+        assert "crawl4ai_fetch_async" in _BUILTIN_TOOLS
 
     def test_custom_tool_dir_path(self):
         """Custom tools directory exists and contains 'arachne' in its path."""

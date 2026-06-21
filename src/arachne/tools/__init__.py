@@ -49,6 +49,7 @@ from arachne.tools.system.system_time import get_current_time
 # 4. Web
 from arachne.tools.web.arxiv_search import arxiv_search_async
 from arachne.tools.web.browser_visit import browser_visit_async
+from arachne.tools.web.crawl4ai_fetch import crawl4ai_fetch_async
 from arachne.tools.web.deep_research import deep_research_async
 from arachne.tools.web.duckduckgo_search import duckduckgo_search_async
 from arachne.tools.web.google_scraper import google_search_async
@@ -77,6 +78,7 @@ _BUILTIN_TOOLS: dict[str, object] = {
     "arxiv_search_async": arxiv_search_async,
     "deep_research_async": deep_research_async,
     "browser_visit_async": browser_visit_async,
+    "crawl4ai_fetch_async": crawl4ai_fetch_async,
     "jina_search_async": jina_search_async,
     "take_screenshot_async": take_screenshot_async,
     "get_previous_searches": get_previous_searches,

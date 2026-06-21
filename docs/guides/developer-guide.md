@@ -75,6 +75,24 @@ uv pip install pytest-cov
 uv run pytest --cov=src/arachne --cov-report=term-missing
 ```
 
+## Optional Crawl4AI Tool
+
+Arachne includes `crawl4ai_fetch_async` for browser-rendered, LLM-ready Markdown extraction through
+[Crawl4AI](https://github.com/unclecode/crawl4ai). It is an optional dependency because Crawl4AI installs
+browser-facing crawler components that are not needed for every Arachne workflow.
+
+```bash
+# Install Arachne with the Crawl4AI extra
+uv sync --extra crawl
+
+# Set up and verify Crawl4AI's browser runtime
+uv run crawl4ai-setup
+uv run crawl4ai-doctor
+```
+
+Use `uv run arachne --list-tools` to confirm `crawl4ai_fetch_async` is available. The tool accepts only absolute
+`http://` and `https://` URLs.
+
 ## Linting & Formatting
 ```bash
 # Check for issues

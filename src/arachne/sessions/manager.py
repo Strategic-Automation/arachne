@@ -4,11 +4,26 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from contextvars import ContextVar
 from datetime import UTC, datetime
 from pathlib import Path
 
 active_session_path: ContextVar[Path | None] = ContextVar("active_session_path", default=None)
+
+_TIME_SENSITIVE_WORDS = {
+    "today",
+    "current",
+    "latest",
+    "recent",
+    "now",
+}
+_TIME_SENSITIVE_PHRASES = (
+    "as of",
+    "as at",
+    "up to date",
+    "up-to-date",
+)
 
 
 class Session:
@@ -107,10 +122,41 @@ def _default_dir() -> Path:
     return Path.home() / ".local" / "share" / "arachne" / "sessions"
 
 
-def find_latest_session_by_goal(goal: str, base_dir: str | Path | None = None) -> str | None:
-    """Find the most recent session ID that matches the given goal."""
+def _is_time_sensitive_goal(goal: str) -> bool:
+    normalized = goal.lower()
+    words = set(re.findall(r"[a-z0-9-]+", normalized))
+    return bool(words & _TIME_SENSITIVE_WORDS) or any(phrase in normalized for phrase in _TIME_SENSITIVE_PHRASES)
+
+
+def _session_state_is_complete(session_dir: str | Path) -> bool:
+    state_path = Path(session_dir) / "state.json"
+    if not state_path.exists():
+        return False
+
+    try:
+        state = json.loads(state_path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return False
+
+    node_results = state.get("node_results", [])
+    statuses = [str(result.get("status", "")) for result in node_results if isinstance(result, dict)]
+    has_all_completed_nodes = bool(statuses) and all(status == "completed" for status in statuses)
+    return state.get("success") is True or has_all_completed_nodes
+
+
+def find_latest_session_by_goal(
+    goal: str,
+    base_dir: str | Path | None = None,
+    *,
+    include_completed: bool = False,
+    allow_time_sensitive: bool = False,
+) -> str | None:
+    """Find the most recent resumable session ID that matches the given goal."""
     directory = Path(base_dir) if base_dir else _default_dir()
     if not directory.exists():
+        return None
+
+    if _is_time_sensitive_goal(goal) and not allow_time_sensitive:
         return None
 
     entries = []
@@ -130,7 +176,7 @@ def find_latest_session_by_goal(goal: str, base_dir: str | Path | None = None) -
         try:
             with open(inputs_path, "rb") as f:
                 inputs = json.load(f)
-                if inputs.get("goal") == goal:
+                if inputs.get("goal") == goal and (include_completed or not _session_state_is_complete(path)):
                     return name
         except (FileNotFoundError, json.JSONDecodeError, OSError):
             continue

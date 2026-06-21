@@ -1,9 +1,11 @@
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from arachne.tools.web.browser_search import browser_search_async
 from arachne.tools.web.browser_visit import browser_visit_async
+from arachne.tools.web.crawl4ai_fetch import _extract_markdown, crawl4ai_fetch, crawl4ai_fetch_async
 from arachne.tools.web.deep_research import deep_research_async
 
 
@@ -86,3 +88,91 @@ async def test_browser_visit_timeout(mock_playwright_context):
     func = browser_visit_async.func if hasattr(browser_visit_async, "func") else browser_visit_async
     result = await func("https://slow.com")
     assert "Failed to load https://slow.com" in result
+
+
+@pytest.mark.asyncio
+async def test_crawl4ai_fetch_missing_dependency():
+    """Crawl4AI tool should fail softly when optional dependency is absent."""
+    with patch.dict("sys.modules", {"crawl4ai": None}):
+        result = await crawl4ai_fetch("https://example.com")
+
+    assert "Crawl4AI is not installed" in result
+    assert "uv sync --extra crawl" in result
+
+
+@pytest.mark.asyncio
+async def test_crawl4ai_fetch_rejects_non_web_urls():
+    """Crawl4AI tool should not expose local-file crawling to graph nodes."""
+    result = await crawl4ai_fetch("file:///etc/passwd")
+
+    assert result == "Crawl4AI fetch only supports absolute http:// or https:// URLs."
+
+
+def test_crawl4ai_extracts_current_markdown_result_shape():
+    """Crawl4AI 0.8.x can expose markdown as an object with fit/raw fields."""
+    result = SimpleNamespace(
+        markdown=SimpleNamespace(
+            fit_markdown="## Fit Markdown",
+            raw_markdown="## Raw Markdown",
+        )
+    )
+
+    assert _extract_markdown(result) == "## Fit Markdown"
+
+
+@pytest.mark.asyncio
+async def test_crawl4ai_fetch_reports_crawler_exceptions():
+    """Crawler runtime failures should be returned as agent-readable text."""
+    mock_crawler = AsyncMock()
+    mock_crawler.arun = AsyncMock(side_effect=RuntimeError("browser crashed"))
+    mock_crawler.__aenter__.return_value = mock_crawler
+    mock_crawler.__aexit__.return_value = None
+
+    fake_crawl4ai = SimpleNamespace(AsyncWebCrawler=MagicMock(return_value=mock_crawler))
+
+    with patch.dict("sys.modules", {"crawl4ai": fake_crawl4ai}):
+        result = await crawl4ai_fetch("https://example.com")
+
+    assert result == "Crawl4AI failed to fetch https://example.com: browser crashed"
+
+
+@pytest.mark.asyncio
+async def test_crawl4ai_fetch_reports_unsuccessful_extraction():
+    """Crawl4AI error messages should be surfaced when no Markdown is available."""
+    mock_result = SimpleNamespace(markdown="", success=False, error_message="blocked by robots")
+
+    mock_crawler = AsyncMock()
+    mock_crawler.arun = AsyncMock(return_value=mock_result)
+    mock_crawler.__aenter__.return_value = mock_crawler
+    mock_crawler.__aexit__.return_value = None
+
+    fake_crawl4ai = SimpleNamespace(AsyncWebCrawler=MagicMock(return_value=mock_crawler))
+
+    with patch.dict("sys.modules", {"crawl4ai": fake_crawl4ai}):
+        result = await crawl4ai_fetch("https://example.com")
+
+    assert result == "Crawl4AI could not extract readable content from https://example.com: blocked by robots"
+
+
+@pytest.mark.asyncio
+async def test_crawl4ai_fetch_success_records_markdown():
+    """Crawl4AI result markdown is returned and truncated through the tool wrapper."""
+    mock_result = MagicMock()
+    mock_result.markdown = "## Example\n\nContent"
+
+    mock_crawler = AsyncMock()
+    mock_crawler.arun = AsyncMock(return_value=mock_result)
+    mock_crawler.__aenter__.return_value = mock_crawler
+    mock_crawler.__aexit__.return_value = None
+
+    fake_crawl4ai = SimpleNamespace(AsyncWebCrawler=MagicMock(return_value=mock_crawler))
+
+    with (
+        patch.dict("sys.modules", {"crawl4ai": fake_crawl4ai}),
+        patch("arachne.runtime.search_memory.record_search") as mock_record,
+    ):
+        func = crawl4ai_fetch_async.func if hasattr(crawl4ai_fetch_async, "func") else crawl4ai_fetch_async
+        result = await func("https://example.com")
+
+    assert result == "## Example\n\nContent"
+    mock_record.assert_called_once_with("crawl4ai_fetch_async", "https://example.com", result)
