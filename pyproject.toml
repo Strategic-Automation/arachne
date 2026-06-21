@@ -58,6 +58,9 @@ Repository = "https://github.com/Strategic-Automation/arachne"
 Changelog = "https://github.com/Strategic-Automation/arachne/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
+crawl = [
+    "crawl4ai>=0.8.9,<0.9",
+]
 dev = [
     "ruff>=0.15,<0.16",
     "pytest>=9.0,<9.1",

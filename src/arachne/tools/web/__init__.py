@@ -1,5 +1,6 @@
 from .arxiv_search import arxiv_search_async
 from .browser_visit import browser_visit_async
+from .crawl4ai_fetch import crawl4ai_fetch_async
 from .deep_research import deep_research_async
 from .duckduckgo_search import duckduckgo_search_async
 from .google_scraper import google_search_async
@@ -10,6 +11,7 @@ from .wikipedia_search import wikipedia_search_async
 __all__ = [
     "arxiv_search_async",
     "browser_visit_async",
+    "crawl4ai_fetch_async",
     "deep_research_async",
     "duckduckgo_search_async",
     "google_search_async",

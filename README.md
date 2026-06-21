@@ -115,6 +115,18 @@ For extra control, enable interactive review:
 uv run arachne run "Research the current state of humanoid robotics" --interactive
 ```
 
+### Optional Crawl4AI Web Extraction
+
+For browser-rendered, LLM-ready Markdown extraction, install the optional Crawl4AI tool:
+
+```bash
+uv sync --extra crawl
+uv run crawl4ai-setup
+uv run crawl4ai-doctor
+```
+
+This enables the built-in `crawl4ai_fetch_async` tool for `http://` and `https://` pages.
+
 ---
 
 ## Common commands
@@ -198,3 +210,4 @@ uv run pytest
 ## License
 
 Arachne is released under the MIT License. See [LICENSE](LICENSE) for details.
+
