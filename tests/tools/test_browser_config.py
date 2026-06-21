@@ -26,7 +26,7 @@ async def test_deep_research_uses_browser_settings():
 
     with (
         # Patch Settings where deep_research imports it
-        patch("arachne.tools.web.deep_research.Settings", return_value=mock_settings),
+        patch("arachne.tools.web.deep_research.get_settings", return_value=mock_settings),
         patch("arachne.tools.web.deep_research.ChatOpenAI") as mock_chat,
         patch("arachne.tools.web.deep_research.Agent") as mock_agent,
         patch("arachne.tools.web.deep_research.Browser"),
@@ -69,7 +69,7 @@ async def test_deep_research_fallback_to_main_settings():
     func_to_test = deep_research_async.func if hasattr(deep_research_async, "func") else deep_research_async
 
     with (
-        patch("arachne.tools.web.deep_research.Settings", return_value=mock_settings),
+        patch("arachne.tools.web.deep_research.get_settings", return_value=mock_settings),
         patch("arachne.tools.web.deep_research.ChatOpenAI") as mock_chat,
         patch("arachne.tools.web.deep_research.Agent") as mock_agent,
         patch("arachne.tools.web.deep_research.Browser"),

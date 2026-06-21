@@ -76,3 +76,18 @@ def test_read_session_file_no_session():
     mock_active.get.return_value = None
     with patch("arachne.tools.session.read_file.active_session_path", mock_active):
         assert "No active session" in read_session_file("test.txt")
+
+
+def test_read_session_file_blocks_path_traversal(tmp_path):
+    """Session file reads must stay inside the active session directory."""
+    session_dir = tmp_path / "session"
+    session_dir.mkdir()
+    outside = tmp_path / "secret.txt"
+    outside.write_text("secret")
+
+    mock_active = MagicMock()
+    mock_active.get.return_value = session_dir
+    with patch("arachne.tools.session.read_file.active_session_path", mock_active):
+        result = read_session_file("../secret.txt")
+
+    assert "Access denied" in result

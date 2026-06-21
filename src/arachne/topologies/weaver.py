@@ -7,7 +7,7 @@ import logging
 import dspy
 from dspy.adapters.json_adapter import AdapterParseError
 
-from arachne.config import Settings
+from arachne.config import Settings, get_settings
 from arachne.skills import registry as skill_registry
 from arachne.tools import list_tools
 from arachne.topologies.schema import GoalDefinition, GraphTopology, NodeRole
@@ -135,7 +135,7 @@ class GraphWeaverSignature(dspy.Signature):
 class GraphWeaver(dspy.Module):
     def __init__(self, settings: Settings | None = None, max_nodes: int = 15) -> None:
         super().__init__()
-        self.settings = settings or Settings()
+        self.settings = settings or get_settings()
         self.max_nodes = max_nodes
         self._available_roles = ", ".join(r.value for r in NodeRole)
 

@@ -26,7 +26,7 @@ async def test_jina_search_auth_failure():
 
     with (
         patch("httpx.AsyncClient", return_value=mock_client),
-        patch("arachne.tools.web.jina.Settings", return_value=mock_settings),
+        patch("arachne.tools.web.jina.get_settings", return_value=mock_settings),
     ):
         # The AsyncClient is used as: async with httpx.AsyncClient(...) as client:
         # So the __aenter__ of the return value of httpx.AsyncClient() should return the client

@@ -4,7 +4,7 @@ import aiohttp
 import dspy
 from pydantic import BaseModel, Field
 
-from arachne.config import Settings
+from arachne.config import Settings, get_settings
 from arachne.tools.web.browser_search import browser_search_async
 
 
@@ -51,7 +51,7 @@ async def google_search_async(query: str, num_results: int = 5, **_kwargs) -> st
     This tool first attempts to use SerpApi or Brave Search if keys are provided.
     Otherwise, it falls back to a stealth headless browser.
     """
-    settings = Settings()
+    settings = get_settings()
 
     # 1. Try SerpApi (Gold Standard for Search APIs)
     if settings.serpapi_api_key:
@@ -75,5 +75,5 @@ def is_available(settings: Settings | None = None) -> bool:
     The headless browser fallback is too unreliable to be exposed as a primary tool.
     """
     if settings is None:
-        settings = Settings()
+        settings = get_settings()
     return bool(settings.serpapi_api_key or os.getenv("BRAVE_SEARCH_API_KEY"))
